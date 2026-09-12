@@ -9,7 +9,7 @@
  */
 
 import Link from "next/link";
-import { Brush, Download, FileDown, Sparkles, BookOpen, School, Home } from "lucide-react";
+import { Brush, Download, FileDown, Sparkles, BookOpen, School, Home, ArrowRight, Baby, GraduationCap, Crown, Palette } from "lucide-react";
 
 import { LiveGenerator } from "@/components/homepage/live-generator";
 import {
@@ -117,15 +117,19 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ============== CATEGORIES ============== */}
-      <section className="border-t bg-muted/30">
+      {/* ============== BROWSE BY CATEGORY（整张卡片可点击 + 渐变背景 + 入口箭头） ============== */}
+      <section className="border-t bg-gradient-to-b from-background to-muted/40">
         <div className="mx-auto max-w-6xl px-4 py-16">
-          <h2 className="mb-2 text-2xl font-bold tracking-tight sm:text-3xl">
-            📚 Browse by Category
-          </h2>
-          <p className="mb-8 text-sm text-muted-foreground">
-            Find the perfect coloring page for any occasion — holidays, animals, fantasy, and more
-          </p>
+          <div className="mb-8 flex items-end justify-between">
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
+                📚 Browse by Category
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Find the perfect coloring page for any occasion — 8 curated categories
+              </p>
+            </div>
+          </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {CATEGORY_META.map((cat) => {
@@ -137,31 +141,149 @@ export default function HomePage() {
               );
 
               return (
-                <div key={cat.key} className="rounded-xl border bg-card p-5">
-                  <div className="mb-3 text-3xl">{cat.emoji}</div>
-                  <h3 className="mb-1 font-semibold">{cat.label}</h3>
-                  <p className="mb-3 text-xs text-muted-foreground">
-                    {catThemes.length} coloring pages
+                <Link
+                  key={cat.key}
+                  href={`/coloring-pages/${cat.key}`}
+                  className="group relative flex flex-col overflow-hidden rounded-2xl border bg-card p-5 transition hover:-translate-y-1 hover:shadow-xl"
+                >
+                  {/* 背景装饰渐变 */}
+                  <div
+                    className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full opacity-10 transition group-hover:opacity-20"
+                    style={{ background: cat.bgGradient }}
+                  />
+
+                  {/* Emoji 大图标 */}
+                  <div
+                    className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-xl text-2xl shadow-sm"
+                    style={{ background: cat.iconBg }}
+                  >
+                    {cat.emoji}
+                  </div>
+
+                  <h3 className="mb-1 text-base font-semibold">{cat.label}</h3>
+                  <p className="mb-4 text-xs text-muted-foreground">
+                    {catThemes.length} coloring pages · updated weekly
                   </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {catSlugs.slice(0, 3).map((s) => {
-                      // 从 slug 反向解析 subject title
-                      const slugParts = s.replace("-for-kids", "").replace(/^cute-/, "").replace(/^simple-/, "").replace(/^detailed-/, "").replace(/^kawaii-/, "").replace(/^easy-/, "");
+
+                  {/* 预览标签 strip */}
+                  <div className="mb-4 flex flex-wrap gap-1.5">
+                    {catSlugs.slice(0, 4).map((s) => {
+                      const slugParts = s.replace("-for-kids", "").replace(/^cute-/, "");
                       const subject = THEMES.find((t) => t.slug === slugParts);
                       return (
-                        <Link
+                        <span
                           key={s}
-                          href={`/coloring-pages/${s}`}
-                          className="rounded-full border bg-background px-2.5 py-0.5 text-[11px] text-muted-foreground transition hover:bg-accent hover:text-foreground"
+                          className="rounded-full border bg-background/70 px-2 py-0.5 text-[10px] text-muted-foreground"
                         >
                           {subject?.title ?? slugParts}
-                        </Link>
+                        </span>
                       );
                     })}
                   </div>
-                </div>
+
+                  {/* 底部"查看全部"入口 */}
+                  <div className="mt-auto flex items-center gap-1 text-xs font-medium text-primary">
+                    Browse all {catThemes.length} →
+                    <ArrowRight className="h-3 w-3 transition group-hover:translate-x-0.5" />
+                  </div>
+                </Link>
               );
             })}
+          </div>
+        </div>
+      </section>
+
+      {/* ============== BROWSE BY AGE（4 张设计感强的年龄入口卡） ============== */}
+      <section className="border-t bg-muted/30">
+        <div className="mx-auto max-w-6xl px-4 py-16">
+          <h2 className="mb-2 text-2xl font-bold tracking-tight sm:text-3xl">
+            👶 Browse by Age Group
+          </h2>
+          <p className="mb-8 text-sm text-muted-foreground">
+            Find the right level — from bold toddler outlines to intricate adult designs
+          </p>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {AGE_CARDS.map((card) => (
+              <Link
+                key={card.slug}
+                href={`/coloring-pages/${card.slug}`}
+                className="group relative overflow-hidden rounded-2xl border p-6 transition hover:-translate-y-1 hover:shadow-xl"
+                style={{ background: card.cardBg }}
+              >
+                {/* 装饰图形 */}
+                <div
+                  className="pointer-events-none absolute -bottom-6 -right-6 h-28 w-28 rounded-full opacity-10 transition group-hover:opacity-20"
+                  style={{ background: card.accentColor }}
+                />
+
+                <div
+                  className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl shadow-sm"
+                  style={{ background: card.iconBg, color: card.iconColor }}
+                >
+                  {card.icon}
+                </div>
+
+                <h3 className="mb-1 text-lg font-bold" style={{ color: card.titleColor }}>
+                  {card.title}
+                </h3>
+                <p className="mb-4 text-xs leading-relaxed" style={{ color: card.descColor }}>
+                  {card.desc}
+                </p>
+
+                {/* 示例预览小标签 */}
+                <div className="mb-4 flex flex-wrap gap-1.5">
+                  {card.examples.map((ex) => (
+                    <span
+                      key={ex}
+                      className="rounded-full border bg-white/80 px-2 py-0.5 text-[10px] font-medium"
+                      style={{ color: card.titleColor, borderColor: card.accentColor }}
+                    >
+                      {ex}
+                    </span>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-1 text-xs font-semibold" style={{ color: card.titleColor }}>
+                  Browse library →
+                  <ArrowRight className="h-3 w-3 transition group-hover:translate-x-0.5" />
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ============== HOLIDAY & OCCASION（快条 strip） ============== */}
+      <section className="border-t">
+        <div className="mx-auto max-w-6xl px-4 py-16">
+          <h2 className="mb-2 text-2xl font-bold tracking-tight sm:text-3xl">
+            🎃 Holiday & Occasion
+          </h2>
+          <p className="mb-8 text-sm text-muted-foreground">
+            Printable coloring pages for every season, holiday, and special occasion
+          </p>
+
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {HOLIDAY_CARDS.map((card) => (
+              <Link
+                key={card.slug}
+                href={`/coloring-pages/${card.slug}`}
+                className="group flex items-center gap-4 rounded-xl border bg-card p-4 transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+              >
+                <div
+                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-2xl shadow-sm"
+                  style={{ background: card.bg }}
+                >
+                  {card.emoji}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h3 className="truncate text-sm font-semibold">{card.label}</h3>
+                  <p className="text-[11px] text-muted-foreground">{card.count} pages</p>
+                </div>
+                <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground opacity-50 transition group-hover:translate-x-1 group-hover:opacity-100" />
+              </Link>
+            ))}
           </div>
         </div>
       </section>
@@ -203,15 +325,77 @@ export default function HomePage() {
  * Sub-components
  * ============================================================ */
 
-const CATEGORY_META: { key: string; label: string; emoji: string }[] = [
-  { key: "holidays", label: "Holidays", emoji: "🎄" },
-  { key: "fantasy", label: "Fantasy & Characters", emoji: "🦄" },
-  { key: "animals", label: "Animals", emoji: "🐶" },
-  { key: "nature", label: "Nature & Landscapes", emoji: "🌳" },
-  { key: "vehicles", label: "Vehicles", emoji: "🚗" },
-  { key: "characters", label: "Characters", emoji: "⭐" },
-  { key: "education", label: "Educational", emoji: "🔤" },
-  { key: "food", label: "Food & Sweets", emoji: "🍕" },
+const CATEGORY_META: { key: string; label: string; emoji: string; iconBg: string; bgGradient: string }[] = [
+  { key: "animals", label: "Animals", emoji: "🐶", iconBg: "#fef3c7", bgGradient: "linear-gradient(135deg, #fbbf24, #f59e0b)" },
+  { key: "holidays", label: "Holidays", emoji: "🎄", iconBg: "#fee2e2", bgGradient: "linear-gradient(135deg, #ef4444, #dc2626)" },
+  { key: "fantasy", label: "Fantasy & Characters", emoji: "🦄", iconBg: "#fae8ff", bgGradient: "linear-gradient(135deg, #a855f7, #9333ea)" },
+  { key: "vehicles", label: "Vehicles", emoji: "🚗", iconBg: "#dbeafe", bgGradient: "linear-gradient(135deg, #3b82f6, #2563eb)" },
+  { key: "nature", label: "Nature & Landscapes", emoji: "🌳", iconBg: "#dcfce7", bgGradient: "linear-gradient(135deg, #22c55e, #16a34a)" },
+  { key: "food", label: "Food & Sweets", emoji: "🍕", iconBg: "#ffedd5", bgGradient: "linear-gradient(135deg, #f97316, #ea580c)" },
+  { key: "characters", label: "Characters", emoji: "⭐", iconBg: "#fef9c3", bgGradient: "linear-gradient(135deg, #eab308, #ca8a04)" },
+  { key: "education", label: "Educational", emoji: "🔤", iconBg: "#e0e7ff", bgGradient: "linear-gradient(135deg, #6366f1, #4f46e5)" },
+];
+
+const AGE_CARDS = [
+  {
+    slug: "for-toddlers",
+    title: "Toddlers",
+    desc: "Extra thick bold outlines, large simple shapes, big easy-to-color areas. Perfect ages 2–4.",
+    examples: ["Puppy", "Butterfly", "Teddy Bear"],
+    icon: <Baby className="h-5 w-5" />,
+    iconBg: "#fce7f3",
+    iconColor: "#db2777",
+    cardBg: "linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%)",
+    accentColor: "#f9a8d4",
+    titleColor: "#9d174d",
+    descColor: "#9d174d",
+  },
+  {
+    slug: "for-preschoolers",
+    title: "Preschoolers",
+    desc: "Clean thick outlines, fun cartoon details. Ages 4–5, getting ready for crayons.",
+    examples: ["Bunny", "Kitty", "Elephant"],
+    icon: <GraduationCap className="h-5 w-5" />,
+    iconBg: "#fef3c7",
+    iconColor: "#b45309",
+    cardBg: "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)",
+    accentColor: "#fcd34d",
+    titleColor: "#92400e",
+    descColor: "#92400e",
+  },
+  {
+    slug: "for-kids",
+    title: "Kids",
+    desc: "Fun cartoon details, medium bold outlines. Ages 6–10, classic coloring experience.",
+    examples: ["Dinosaur", "Unicorn", "Space Rocket"],
+    icon: <Crown className="h-5 w-5" />,
+    iconBg: "#dbeafe",
+    iconColor: "#1d4ed8",
+    cardBg: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)",
+    accentColor: "#93c5fd",
+    titleColor: "#1e40af",
+    descColor: "#1e40af",
+  },
+  {
+    slug: "for-adults",
+    title: "Adults",
+    desc: "Intricate fine line art, decorative patterns, stress-relieving designs.",
+    examples: ["Mandala", "Geometric", "Nature Patterns"],
+    icon: <Palette className="h-5 w-5" />,
+    iconBg: "#f0fdf4",
+    iconColor: "#15803d",
+    cardBg: "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)",
+    accentColor: "#86efac",
+    titleColor: "#166534",
+    descColor: "#166534",
+  },
+];
+
+const HOLIDAY_CARDS = [
+  { slug: "for-halloween", label: "Halloween", emoji: "🎃", bg: "#fef3c7", count: 3 },
+  { slug: "for-christmas", label: "Christmas", emoji: "🎄", bg: "#fee2e2", count: 3 },
+  { slug: "for-easter", label: "Easter", emoji: "🐰", bg: "#fae8ff", count: 2 },
+  { slug: "for-thanksgiving", label: "Thanksgiving", emoji: "🦃", bg: "#ffedd5", count: 1 },
 ];
 
 /** 着色页卡片 —— 优先使用本地 SVG 兜底，彻底避免 Pollinations 429 并发 */
