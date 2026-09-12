@@ -21,6 +21,7 @@ import {
   buildEntry,
   slugToDeterministicSeed,
 } from "@/lib/us-coloring-data";
+import { buildPollinationsUrl } from "@/lib/ai-generator";
 
 export const metadata = {
   title:
@@ -210,19 +211,23 @@ const CATEGORY_META: { key: string; label: string; emoji: string }[] = [
   { key: "food", label: "Food & Sweets", emoji: "🍕" },
 ];
 
-/** 着色页卡片 —— 直接用 Pollinations 图片 URL（SSR 友好） */
+/** 着色页卡片 —— 用 buildPollinationsUrl（自动去水印 + 黑白线稿 + CDN 缓存破） */
 function ColoringCard({ slug }: { slug: string }) {
-  const parsed = slug.split(/-for-(toddlers|kids|adults)$/)[0];
   const seed = slugToDeterministicSeed(slug);
   const title = slug
-    .split("-for-")[0]
+    .replace(/-for-toddlers$|-for-preschoolers$|-for-kids$|-for-adults$/g, "")
+    .replace(/^cute-|^simple-|^detailed-|^kawaii-|^easy-/g, "")
     .replace(/-/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());
 
-  const promptUrl = encodeURIComponent(
-    `${parsed.replace(/-/g, " ")}, coloring page, black and white line art, clean outlines, pure white background`
-  );
-  const imgUrl = `https://image.pollinations.ai/prompt/${promptUrl}?width=400&height=400&model=flux&nologo=true&seed=${seed}`;
+  // 让 buildPollinationsUrl 自动处理：黑白包装 + nologo + negative + seed+2026 缓存破
+  const imgUrl = buildPollinationsUrl({
+    prompt: slug,
+    width: 400,
+    height: 400,
+    model: "flux",
+    seed,
+  });
 
   return (
     <Link

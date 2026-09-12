@@ -22,7 +22,22 @@ export const DEFAULT_WIDTH = 2048;
 export const DEFAULT_HEIGHT = 2048;
 const DEFAULT_POLLINATIONS_MODEL = "flux";
 
-/** Google Imagen 模型选择 —— 优先使用 4.0，回退 3.0 */
+/** 全局负向提示词（Pollinations URL 的 negative 参数） */
+const POLLINATIONS_NEGATIVE =
+  "color,shading,shadow,realistic,3d,gradients,watermark,text,logo,signature,photorealistic,photography,cinematic";
+
+/** seed 强制偏移量 —— 打破 Pollinations CDN 历史缓存（2026 年版本号） */
+const SEED_CACHE_BUST_OFFSET = 2026;
+
+/** 线稿 Prompt 前置包装 —— 强制 AI 输出黑白涂色页 */
+const LINEART_PREFIX =
+  "strictly coloring book page, pure black and white line art, strictly black outlines only, blank coloring sheet, ";
+
+/** 线稿 Prompt 后置负向约束 —— 极高权重压制彩色/3D */
+const LINEART_SUFFIX =
+  ", absolutely no color, no shading, no grayscale, no gradients, no texture, no 3D rendering, no photorealism, no watermark, no text, no signature, no logo";
+
+/** Google Imagen 模型选择 —— 优先使用 Nano Banana 2 */
 const GOOGLE_IMAGEN_MODELS = [
   "gemini-3.1-flash-image",       // 最新 Nano Banana 2（免费额度友好）
   "gemini-2.5-flash-image",       // Nano Banana 1（稳定）
@@ -47,7 +62,19 @@ function toDataUrl(base64: string, mime: string): string {
  * Engine 2: Pollinations（降级 + pSEO 主引擎）
  * ============================================================ */
 
-/** 构造 Pollinations 的完整 URL（仅字符串拼接，不发起请求） */
+/** 强制包装线稿 prompt —— 在用户 prompt 前后加持极高权重黑白约束 */
+export function wrapLineartPrompt(rawPrompt: string): string {
+  return `${LINEART_PREFIX}${rawPrompt}${LINEART_SUFFIX}`;
+}
+
+/** 构造 Pollinations 的完整 URL（仅字符串拼接，不发起请求）
+ *
+ * 强制特性：
+ *   1. seed 偏移 +2026 → 打破 CDN 历史缓存（老图带水印/彩色）
+ *   2. negative 参数 → 双重保险压制彩色/3D/水印
+ *   3. nologo=true → 去除官方水印
+ *   4. prompt 自动包装为严格黑白线稿指令
+ */
 export function buildPollinationsUrl(params: {
   prompt: string;
   width?: number;
@@ -56,21 +83,31 @@ export function buildPollinationsUrl(params: {
   seed?: number;
 }): string {
   const {
-    prompt,
+    prompt: rawPrompt,
     width = DEFAULT_WIDTH,
     height = DEFAULT_HEIGHT,
     model = DEFAULT_POLLINATIONS_MODEL,
     seed,
   } = params;
 
-  const encoded = encodeURIComponent(prompt);
+  // 1) 包装为严格黑白线稿 prompt
+  const wrappedPrompt = wrapLineartPrompt(rawPrompt);
+  const encoded = encodeURIComponent(wrappedPrompt);
+
+  // 2) 构造查询参数
   const usp = new URLSearchParams({
     width: String(width),
     height: String(height),
     model,
     nologo: "true",
+    negative: POLLINATIONS_NEGATIVE,
   });
-  if (seed !== undefined) usp.set("seed", String(seed));
+
+  // 3) seed 强制偏移 —— 打破 CDN 缓存
+  if (seed !== undefined) {
+    const bustedSeed = ((seed + SEED_CACHE_BUST_OFFSET) % 2_147_483_646) + 1;
+    usp.set("seed", String(bustedSeed));
+  }
 
   return `${POLLINATIONS_BASE}/${encoded}?${usp.toString()}`;
 }
