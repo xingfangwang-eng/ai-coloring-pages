@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AuthProvider } from "@/components/auth/session-provider";
 import { SiteNavbar } from "@/components/site-navbar";
@@ -30,6 +31,19 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      {/* Google Analytics 4 —— G-WC4677QJMF */}
+      <Script
+        src="https://www.googletagmanager.com/gtag/js?id=G-WC4677QJMF"
+        strategy="beforeInteractive"
+      />
+      <Script id="ga4-init" strategy="beforeInteractive">
+        {`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-WC4677QJMF');
+        `}
+      </Script>
       <body className="min-h-full flex flex-col">
         <AuthProvider>
           <SiteNavbar />
