@@ -46,6 +46,20 @@ function getCategoryFromSlug(slug: string) {
   return VALID_CATEGORIES.has(lower) ? lower : null;
 }
 
+/**
+ * 判断 slug 是否为 filter keyword（for-halloween / for-christmas / for-butterfly 等）
+ * 语义：列出所有 subject slug 中包含 keyword 的着色页
+ * 返回 filter keyword（去掉 "for-" 前缀后的值）
+ */
+function getFilterKeywordFromSlug(slug: string): string | null {
+  const lower = slug.toLowerCase();
+  if (!lower.startsWith("for-")) return null;
+  const keyword = lower.slice(4);
+  if (!keyword) return null;
+  // 必须至少有一个 subject.slug 包含这个 keyword
+  return SUBJECTS.some((s) => s.slug.includes(keyword)) ? keyword : null;
+}
+
 /* ============================================================
  * Generate Static Params
  * ============================================================ */
@@ -90,9 +104,10 @@ export async function generateMetadata(
     };
   }
 
-  // 2️⃣ Audience / Category slug → 聚合列表页 metadata
-  const audience = getAudienceFromSlug(slug);
-  const category = getCategoryFromSlug(slug);
+  // 2️⃣ Audience / Category / Filter slug → 聚合列表页 metadata
+  const audience = !parsed ? getAudienceFromSlug(slug) : null;
+  const category = !parsed && !audience ? getCategoryFromSlug(slug) : null;
+  const filterKw = !parsed && !audience && !category ? getFilterKeywordFromSlug(slug) : null;
 
   if (audience) {
     const title = `Coloring Pages for ${audience.label} — 100% Free Printable`;
@@ -116,6 +131,17 @@ export async function generateMetadata(
     };
   }
 
+  if (filterKw) {
+    const title = `${filterKw.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())} Coloring Pages — 100% Free Printable`;
+    const description = `Browse all free printable ${filterKw.replace(/-/g, " ")} coloring pages. Clean black line art, US Letter & A4 PDF export, no sign-up required. Perfect for parties, classroom activities, and creative fun.`;
+    return {
+      title,
+      description,
+      alternates: { canonical: `${BASE_URL}/coloring-pages/${slug}` },
+      openGraph: { title, description, url: `${BASE_URL}/coloring-pages/${slug}`, type: "website", siteName: "AI Coloring Pages - wangdadi.xyz" },
+    };
+  }
+
   return { title: "Coloring Page Not Found - wangdadi.xyz" };
 }
 
@@ -129,15 +155,18 @@ export default async function ColoringPageDetail(
   const { slug } = await params;
   const parsed = parseSlug(slug);
 
-  // 1️⃣ Audience slug（for-kids / for-toddlers / ...）→ 聚合列表页
+  // 1️⃣ Audience slug（for-kids / for-adults / ...）→ 聚合列表页
   const audience = !parsed ? getAudienceFromSlug(slug) : null;
   // 2️⃣ Category slug（animals / holidays / ...）→ 聚合列表页
   const category = !parsed && !audience ? getCategoryFromSlug(slug) : null;
+  // 3️⃣ Filter keyword（for-halloween / for-christmas / ...）→ 聚合列表页
+  const filterKw = !parsed && !audience && !category ? getFilterKeywordFromSlug(slug) : null;
 
   if (audience) return <AudienceListing audienceSlug={audience.slug} audienceLabel={audience.label} />;
   if (category) return <CategoryListing categorySlug={category} />;
+  if (filterKw) return <FilterListing keyword={filterKw} />;
 
-  // 3️⃣ 都不是 → 404
+  // 4️⃣ 都不是 → 404
   if (!parsed) notFound();
 
   const entry = buildEntry(parsed.subject, parsed.style, parsed.audience);
@@ -518,5 +547,84 @@ function ListingCardImage({ slug }: { slug: string }) {
     <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-indigo-50 to-purple-50">
       <span className="text-3xl text-indigo-200">🎨</span>
     </div>
+  );
+}
+
+/** Filter 聚合页 —— 例如 /coloring-pages/for-halloween 列出所有 halloween 主题着色页 */
+function FilterListing({ keyword }: { keyword: string }) {
+  const label = keyword.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  const styleSlug = "cute";
+  const audienceSlug = "for-kids";
+  const subjects = SUBJECTS.filter((s) => s.slug.includes(keyword));
+  const slugs = subjects.map((s) => `${styleSlug}-${s.slug}-${audienceSlug}`);
+  const slug = `for-${keyword}`;
+  const title = `${label} Coloring Pages`;
+  const canonical = `${BASE_URL}/coloring-pages/${slug}`;
+
+  const faqs = [
+    { q: `Is it free to print all these ${label.toLowerCase()} coloring pages?`, a: `Yes — every page is 100% free for personal, classroom, and homeschooling use with zero registration and zero watermarks. Download as US Letter or A4 PDF.` },
+    { q: `What age group are these best for?`, a: `These ${label.toLowerCase()} pages use bold thick outlines designed for kids ages 4–8, but older kids and adults enjoy them too.` },
+    { q: `Can I use these for classroom or party activities?`, a: `Absolutely — print unlimited copies for classroom activities, party favors, or homeschooling. No restrictions, ever.` },
+  ];
+
+  return (
+    <main className="flex-1">
+      <GeoSchema
+        pageUrl={canonical}
+        pageName={title}
+        pageDescription={`Browse ${slugs.length} free printable ${label.toLowerCase()} coloring pages. Clean black line art, US Letter & A4 PDF export, no sign-up required. Perfect for parties and classroom activities.`}
+        faqs={faqs}
+        breadcrumbs={[
+          { name: "Home", item: `${BASE_URL}/` },
+          { name: "Coloring Pages", item: `${BASE_URL}/coloring-pages/${slug}` },
+        ]}
+      />
+
+      <nav aria-label="Breadcrumb" className="border-b bg-muted/30">
+        <div className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-3 text-sm text-muted-foreground">
+          <Link href="/" className="hover:text-primary">Home</Link>
+          <span>/</span>
+          <span className="text-foreground">{title}</span>
+        </div>
+      </nav>
+
+      <section className="mx-auto max-w-6xl px-4 py-12">
+        <h1 className="mb-3 text-4xl font-bold tracking-tight">{title}</h1>
+        <p className="mb-8 max-w-2xl text-muted-foreground">
+          Browse {slugs.length} free printable {label.toLowerCase()} coloring pages.
+          Clean black line art, bold outlines, US Letter & A4 PDF export — no sign-up required.
+          Perfect for parties, classroom activities, and creative fun.
+        </p>
+
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+          {slugs.map((slug) => (
+            <Link key={slug} href={`/coloring-pages/${slug}`} className="group block overflow-hidden rounded-xl border bg-card transition hover:-translate-y-0.5 hover:shadow-lg">
+              <div className="relative overflow-hidden rounded-xl bg-white" style={{ aspectRatio: "1 / 1" }}>
+                <ListingCardImage slug={slug} />
+              </div>
+              <div className="border-t bg-card px-3 py-2">
+                <p className="truncate text-xs font-medium">
+                  {slug.replace(/^cute-|^simple-|^detailed-|^kawaii-|^easy-/g, "").replace(/-(for-toddlers|for-preschoolers|for-kids|for-adults)$/g, "").replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+                </p>
+              </div>
+            </Link>
+          ))}
+        </div>
+
+        {faqs.length > 0 && (
+          <section className="mt-16">
+            <h2 className="mb-6 text-2xl font-bold">Frequently Asked Questions</h2>
+            <div className="space-y-3">
+              {faqs.map((faq, i) => (
+                <details key={i} className="group rounded-xl border bg-card open:shadow-sm">
+                  <summary className="cursor-pointer select-none list-none px-5 py-4 font-medium">{faq.q}</summary>
+                  <div className="border-t px-5 py-4 text-sm text-muted-foreground"><span className="mr-2 font-medium text-green-700">A:</span>{faq.a}</div>
+                </details>
+              ))}
+            </div>
+          </section>
+        )}
+      </section>
+    </main>
   );
 }
