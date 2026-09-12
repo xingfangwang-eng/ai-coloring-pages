@@ -24,12 +24,13 @@ import { useState, useRef, useCallback } from "react";
  * 专业涂色页二值化：灰度化 → 阈值硬切割 → 纯白底 + 纯黑轮廓
  *
  * @param imgElement 已加载完毕的 HTMLImageElement
- * @param threshold  二值化阈值 (0~255)，默认 135
+ * @param threshold  二值化阈值 (0~255)，默认 90
  *                   低于阈值 → 纯黑(0)，高于阈值 → 纯白(255)
+ *                   越低越激进（消掉更多灰点/阴影/边框）
  */
 export function processToColoringPage(
   imgElement: HTMLImageElement,
-  threshold = 110
+  threshold = 90
 ): string {
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
@@ -73,7 +74,7 @@ export function processToColoringPage(
  */
 export async function urlToColoringDataUrl(
   src: string,
-  threshold = 110
+  threshold = 90
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -104,7 +105,7 @@ export default function LineartImage({
   fallbackSrc,
   className = "",
   imgClassName = "",
-  threshold = 110,
+  threshold = 90,
 }: LineartImageProps) {
   const [retryCount, setRetryCount] = useState(0);
   const [loaded, setLoaded] = useState(false);
