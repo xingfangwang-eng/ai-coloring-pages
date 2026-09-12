@@ -11,7 +11,6 @@
 
 import { useState } from "react";
 import { Download, FileDown, FileText, Loader2 } from "lucide-react";
-import { desaturateImageToDataUrl } from "@/lib/ai-generator";
 
 interface Props {
   imageUrl: string;
@@ -89,11 +88,9 @@ export function PseoClientActions({ imageUrl, displayTitle, seed }: Props) {
       const x = (paper.w - drawW) / 2;
       const y = (paper.h - drawH) / 2;
 
-      // Canvas 强制脱色 —— 保证 PDF 里绝对没有粉腮红/绿眼睛/灰阴影
-      const cleanDataUrl = await desaturateImageToDataUrl(imageUrl);
-
+      // PDF 直接用 AI 生成的原图 —— prompt 已经保证黑白线稿
       pdf.addImage(
-        cleanDataUrl,
+        imageUrl,
         "PNG",
         x,
         y,

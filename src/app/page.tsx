@@ -221,12 +221,12 @@ function ColoringCard({ slug }: { slug: string }) {
     .replace(/-/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());
 
-  // turbo 模型 + 自动 seed 偏移 + nologo
+  // flux 模型 + 自动 seed 偏移 + nologo + negative 封杀黑块
   const imgUrl = buildPollinationsUrl({
     prompt: slug,
     width: 400,
     height: 400,
-    model: "turbo",
+    model: "flux",
     seed,
   });
 

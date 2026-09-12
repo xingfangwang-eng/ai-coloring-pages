@@ -3,12 +3,13 @@
 /**
  * LineartImage —— 着色页图片展示组件（Client Component）
  *
- * 四重防护：
+ * 三重防护：
  *   1. CSS 裁切 —— overflow-hidden + scale(1.06) → 物理干掉底部 Logo
- *   2. CSS 滤镜 —— grayscale(100%) contrast(280%) brightness(108%)
- *      → 强制把 AI 偷偷加的粉腮红、绿眼睛、灰阴影全部漂白
- *   3. onError 自动重试 —— 加载失败时 seed 偏移重试
- *   4. 加载骨架 + 失败降级 —— 永不显示裂图
+ *   2. onError 自动重试 —— 加载失败时 seed 偏移重试
+ *   3. 加载骨架 + 失败降级 —— 永不显示裂图
+ *
+ * 注意：不再使用 CSS filter（contrast/grayscale 会把浅灰烧成黑块）
+ * 黑白线稿由 AI prompt 直接生成，PDF 导出走 Canvas 兜底。
  */
 import { useState, useRef, useCallback } from "react";
 
@@ -108,8 +109,6 @@ export default function LineartImage({
             objectFit: "cover",
             transform: "scale(1.06)",
             transformOrigin: "top center",
-            // 强制脱色：grayscale + 极端对比度 → 粉腮红/绿眼睛/灰阴影全部漂白
-            filter: "grayscale(100%) contrast(280%) brightness(108%)",
           }}
         />
       )}

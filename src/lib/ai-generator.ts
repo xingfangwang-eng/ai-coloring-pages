@@ -17,25 +17,36 @@ import { buildColoringPrompt } from "./prompt-engineering";
 
 const POLLINATIONS_BASE = "https://image.pollinations.ai/prompt";
 
-/** Default image dimensions — 1024x1024（turbo 模型最优尺寸 + 更快） */
+/** Default image dimensions — 1024x1024 */
 export const DEFAULT_WIDTH = 1024;
 export const DEFAULT_HEIGHT = 1024;
-/** turbo = 简笔画专用模型，比 flux 快 5 倍，绝不会出 3D 阴影 */
-const DEFAULT_POLLINATIONS_MODEL = "turbo";
+/** flux = 细节更好的线稿模型 */
+const DEFAULT_POLLINATIONS_MODEL = "flux";
 
 /** seed 强制偏移量 —— 打破 Pollinations CDN 历史缓存 */
 const SEED_CACHE_BUST_OFFSET = 2026;
 
-/** 线稿 Prompt —— 出版级工业线稿指令，严禁可爱/彩色诱导词 */
+/** 正向 Prompt —— 全球验证的儿童涂色页公式
+ *  强调空心线条、无填充、儿童画、剪贴画风格
+ */
 const LINEART_TEMPLATE =
-  "uncolored coloring book page, black ink line art outline, stark black contour on pure white paper, stencil, coloring sheet, zero color, zero shading, hollow outline: ";
+  "children coloring book page, simple outline drawing of ";
+
+/** 正向 Prompt 后缀 —— 强化空心线条 + 白纸背景 */
+const LINEART_SUFFIX =
+  ", clean thin contour lines, empty uncolored white shapes for coloring, kindergarten line art, clip art style, pure white paper background";
+
+/** 负向 Prompt —— 封杀黑块、实心填充、阴影、彩色 */
+const LINEART_NEGATIVE =
+  "solid black fill, black background, black circle, ink wash, dark, shading, shadows, grayscale, gradients, color, realistic, photo, 3d, complex details";
 
 /** 构造 Pollinations 的完整 URL
  *
- * 三重保障：
- *   1. model=turbo —— 简笔画专用，快 5 倍，绝不会画 3D
- *   2. 简练 prompt 模板 —— 避免解析崩溃
- *   3. seed 偏移 +2026 + nologo=true
+ *   1. 正向 prompt 强调空心线稿
+ *   2. negative 参数封杀黑块/阴影/彩色
+ *   3. model=flux（比 turbo 线条更干净）
+ *   4. seed +2026 偏移打破 CDN 缓存
+ *   5. nologo=true 去水印
  */
 export function buildPollinationsUrl(params: {
   prompt: string;
@@ -52,18 +63,18 @@ export function buildPollinationsUrl(params: {
     seed,
   } = params;
 
-  // 简练模板：避免过长 prompt 引起 turbo 解析崩溃
-  const finalPrompt = `${LINEART_TEMPLATE}${rawPrompt}`;
+  const finalPrompt = `${LINEART_TEMPLATE}${rawPrompt}${LINEART_SUFFIX}`;
   const encoded = encodeURIComponent(finalPrompt);
+  const negative = encodeURIComponent(LINEART_NEGATIVE);
 
   const usp = new URLSearchParams({
     width: String(width),
     height: String(height),
     model,
     nologo: "true",
+    negative,
   });
 
-  // seed 偏移打破 CDN 缓存
   if (seed !== undefined) {
     const bustedSeed = ((seed + SEED_CACHE_BUST_OFFSET) % 2_147_483_646) + 1;
     usp.set("seed", String(bustedSeed));
@@ -72,9 +83,9 @@ export function buildPollinationsUrl(params: {
   return `${POLLINATIONS_BASE}/${encoded}?${usp.toString()}`;
 }
 
-/** 已废弃 —— 保留兼容，内部自动用新模板 */
+/** 保留兼容 —— 用新模板 */
 export function wrapLineartPrompt(rawPrompt: string): string {
-  return `${LINEART_TEMPLATE}${rawPrompt}`;
+  return `${LINEART_TEMPLATE}${rawPrompt}${LINEART_SUFFIX}`;
 }
 
 /* ============================================================
