@@ -21,6 +21,15 @@ export function SiteFooter() {
           <Link href="/terms" className="hover:text-foreground">
             Terms of Service
           </Link>
+          <Link href="/sitemap.xml" className="hover:text-foreground">
+            Sitemap
+          </Link>
+          <a
+            href="mailto:xingfang.wang@gmail.com"
+            className="hover:text-foreground"
+          >
+            Contact
+          </a>
         </div>
       </div>
     </footer>
