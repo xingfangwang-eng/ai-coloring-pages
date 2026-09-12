@@ -25,6 +25,25 @@ const secret =
   process.env.AUTH_SECRET ??
   (isDev ? "dev-fallback-secret-not-for-production-2026" : undefined);
 
+/**
+ * 运行时校验（不阻塞 next build）。
+ * 在 NextAuth route handler 被请求时调用，确保关键 env 都齐了。
+ * 缺任意一个 → 明确报错页面，而不是模糊的 "server configuration problem"。
+ */
+export function assertAuthEnv() {
+  if (isDev) return;
+  const missing: string[] = [];
+  if (!secret) missing.push("AUTH_SECRET");
+  if (!process.env.AUTH_URL) missing.push("AUTH_URL");
+  if (missing.length > 0) {
+    throw new Error(
+      `[NextAuth] Missing required env vars in production: ${missing.join(
+        ", "
+      )}. Set them on Vercel → Project → Settings → Environment Variables.`
+    );
+  }
+}
+
 // ---- Provider 条件 ----
 const providers: NextAuthConfig["providers"] = [
   ...(process.env.AUTH_GITHUB_ID && process.env.AUTH_GITHUB_SECRET
