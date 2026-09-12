@@ -117,18 +117,19 @@ export function ResultPanel({ result, onRetry }: ResultPanelProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* 预览图 */}
-      <div className="relative overflow-hidden rounded-xl border bg-muted/30">
+      {/* 预览图 —— overflow-hidden + scale(1.06) 物理裁切 Pollinations 右下角残留 Logo */}
+      <div className="relative overflow-hidden rounded-xl border bg-white" style={{ aspectRatio: "1 / 1" }}>
         <img
           src={result.imageUrl}
           alt={`Coloring page - ${result.prompt}`}
           onClick={handleOpenNewTab}
-          className="aspect-square w-full cursor-zoom-in object-contain"
+          className="h-full w-full cursor-zoom-in"
+          style={{
+            objectFit: "cover",
+            transform: "scale(1.06)",
+            transformOrigin: "top center",
+          }}
         />
-
-        <div className="pointer-events-none absolute bottom-2 right-2 rounded-md bg-background/80 px-2 py-0.5 text-[11px] font-mono text-muted-foreground backdrop-blur">
-          seed: {result.seed} · 1024×1024 · {ext.toUpperCase()}
-        </div>
       </div>
 
       {/* 操作按钮栏 */}

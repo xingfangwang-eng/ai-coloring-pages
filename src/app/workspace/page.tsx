@@ -163,17 +163,7 @@ export default function WorkspacePage() {
 
         setResult(data);
         setQuota(data.quota);
-
-        if (data.watermarked) {
-          toast.success("Line art generated! (free plan includes a light watermark)", {
-            action: {
-              label: "Upgrade to remove watermark",
-              onClick: () => window.open("/pricing", "_blank"),
-            },
-          });
-        } else {
-          toast.success("Line art generated!");
-        }
+        toast.success("Line art generated!");
 
         const item: HistoryItem = {
           id: shortId(),
@@ -184,7 +174,7 @@ export default function WorkspacePage() {
           createdAt: Date.now(),
           source: cloudEnabled ? "cloud" : "local",
           planTag: data.quota.plan,
-          hasWatermark: data.watermarked,
+          hasWatermark: false,
         };
         await pushHistory(item, data.imageUrl);
       } catch (err) {

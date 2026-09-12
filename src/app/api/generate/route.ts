@@ -45,7 +45,7 @@ export async function POST(
   const complexity = b.complexity as Complexity | undefined;
   const width = typeof b.width === "number" ? b.width : undefined;
   const height = typeof b.height === "number" ? b.height : undefined;
-  const model = typeof b.model === "string" ? (b.model as "flux") : undefined;
+  const model = typeof b.model === "string" ? (b.model as "turbo") : undefined;
   const seed = typeof b.seed === "number" ? b.seed : undefined;
 
   if (!prompt) {

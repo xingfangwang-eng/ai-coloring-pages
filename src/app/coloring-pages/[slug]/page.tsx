@@ -127,7 +127,7 @@ export default async function ColoringPageDetail(
 
             {/* 调试信息 —— 确认代码是否真正生效 */}
             <p className="mt-2 text-center text-xs text-muted-foreground">
-              Seed: {finalSeed} | Model: Flux-LineArt
+              Seed: {finalSeed} | Model: Turbo
             </p>
 
             {/* Action buttons (client component handles PDF export) */}
@@ -262,21 +262,21 @@ export default async function ColoringPageDetail(
  * Helpers
  * ============================================================ */
 
-/** 获取图片 —— 极简纯净 prompt + turbo 模型
+/** 获取图片 —— Pollinations Turbo + 精简短句 prompt 模板
  *
- * 反写实终极原则：
- *   1. 严禁出现任何否定词（no X 会激活 X 的权重！Flux/Turbo 都有这个 bug）
- *   2. 只用正向词堆砌最核心的线稿概念
- *   3. model=turbo（SDXL-Turbo 简笔画专家）
+ * 反写实终极原则（用户实测验证 100% 稳定）：
+ *   1. 只用正向词堆砌最核心的线稿概念
+ *   2. 严禁出现任何否定词（no X 会反向激活权重！）
+ *   3. model=turbo（用户实测最稳定生成线稿）
  *   4. seed + 9999999 彻底砸烂历史 CDN 缓存
  */
 async function fetchImage(
   entry: ColoringEntry,
   pureSubject: string
 ): Promise<{ url: string; finalSeed: number }> {
-  // 100% 正向词，无任何否定式
+  // 用户实测验证的精简短句模板 —— 绝对不要加额外词！
   const promptText =
-    `coloring book page of a ${pureSubject}, black line art outline, simple vector contour, white background`;
+    `coloring book page of a ${pureSubject}, black line art outline, white background`;
 
   const encodedPrompt = encodeURIComponent(promptText);
   const finalSeed = ((entry.deterministicSeed + 9_999_999) % 2_147_483_646) + 1;

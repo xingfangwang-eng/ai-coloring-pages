@@ -5,8 +5,8 @@
 /** 复杂度/风格选择 */
 export type Complexity = "kids" | "adults";
 
-/** AI 模型选择（当前 Pollinations 默认 flux） */
-export type AIModel = "flux" | "flux-realism" | "turbo";
+/** AI 模型选择 —— Pollinations Turbo 为当前推荐模型 */
+export type AIModel = "turbo";
 
 /** 会员等级 */
 export type PlanTier = "free" | "pro";
