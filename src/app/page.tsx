@@ -23,6 +23,7 @@ import {
   slugToDeterministicSeed,
 } from "@/lib/us-coloring-data";
 import { buildPollinationsUrl } from "@/lib/ai-generator";
+import { getHomepageSvg } from "@/lib/fallback-svgs";
 import LineartImage from "@/components/lineart-image";
 
 export const metadata = {
@@ -213,7 +214,7 @@ const CATEGORY_META: { key: string; label: string; emoji: string }[] = [
   { key: "food", label: "Food & Sweets", emoji: "🍕" },
 ];
 
-/** 着色页卡片 —— 用净化后的主体词 + turbo 模型 */
+/** 着色页卡片 —— 优先使用本地 SVG 兜底，彻底避免 Pollinations 429 并发 */
 function ColoringCard({ slug }: { slug: string }) {
   const seed = slugToDeterministicSeed(slug);
   const title = slug
@@ -222,18 +223,46 @@ function ColoringCard({ slug }: { slug: string }) {
     .replace(/-/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());
 
-  // 🎯 关键：从 slug 中提取纯净主体词（如 "cat"），
-  // 绝对不把 "cute-cat-for-toddlers" 整个喂给 AI！
+  // 🎯 优先检查是否有本地 SVG 兜底
+  const localSvg = getHomepageSvg(slug);
+
+  if (localSvg) {
+    // 本地 SVG —— 0.1 秒内稳定展示，不发起任何外部请求
+    return (
+      <Link
+        href={`/coloring-pages/${slug}`}
+        className="group block overflow-hidden rounded-xl border bg-card transition hover:-translate-y-0.5 hover:shadow-lg"
+      >
+        <div className="relative overflow-hidden rounded-xl bg-white" style={{ aspectRatio: "1 / 1" }}>
+          <img
+            src={localSvg}
+            alt={`${title} coloring page`}
+            loading="eager"
+            className="h-full w-full"
+          />
+        </div>
+        <div className="border-t bg-card px-3 py-2">
+          <p className="truncate text-xs font-medium">{title}</p>
+        </div>
+      </Link>
+    );
+  }
+
+  // 没有本地 SVG —— 回退到 Pollinations（带 LineartImage 的 retry 逻辑）
   const parsed = parseSlug(slug);
   const pureSubject = parsed?.subject.prompt ?? slug.split("-").slice(1, -1).join(" ");
 
   const imgUrl = buildPollinationsUrl({
-    prompt: pureSubject, // 只传纯净主体词
+    prompt: pureSubject,
     width: 400,
     height: 400,
-    // 不传 model —— 走默认值 turbo
     seed,
   });
+
+  // 兜底：就算 LineartImage 的 Pollinations 也加载失败，显示空白底（不显示错误提示）
+  const fallbackSvg = `data:image/svg+xml;utf8,${encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none" stroke="#ccc" stroke-width="2"><circle cx="100" cy="100" r="60"/><path d="M60 100 L140 100"/><path d="M100 60 L100 140"/></svg>`
+  )}`;
 
   return (
     <Link
@@ -242,6 +271,7 @@ function ColoringCard({ slug }: { slug: string }) {
     >
       <LineartImage
         src={imgUrl}
+        fallbackSrc={fallbackSvg}
         alt={`${title} coloring page`}
         className="rounded-none border-0"
       />
