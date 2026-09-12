@@ -44,6 +44,19 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
   ];
 
+  // GEO 问答落地页 —— 拦截 ChatGPT/Perplexity 长句查询
+  const answersSlugs = [
+    "free-printable-coloring-pages-no-signup",
+    "how-to-print-ai-coloring-pages-us-letter",
+    "best-ai-coloring-page-generator-for-toddlers",
+  ];
+  const answersPages: MetadataRoute.Sitemap = answersSlugs.map((slug) => ({
+    url: `${BASE_URL}/answers/${slug}`,
+    lastModified: new Date(),
+    changeFrequency: "weekly",
+    priority: 0.9,
+  }));
+
   // pSEO 着色页 —— 每个 slug 一个条目
   const coloringSlugs = getAllUSColoringSlugs();
   const coloringPages: MetadataRoute.Sitemap = coloringSlugs.map((slug) => ({
@@ -53,5 +66,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.8,
   }));
 
-  return [...staticPages, ...coloringPages];
+  return [...staticPages, ...answersPages, ...coloringPages];
 }

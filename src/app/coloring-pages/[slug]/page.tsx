@@ -1,16 +1,12 @@
 /**
  * /coloring-pages/[slug]/page.tsx —— pSEO 动态着色页详情页
  *
- * 架构：
- *   - generateStaticParams 预渲染 156 个长尾 slug（52 主题 × 3 受众）
- *   - 使用 Pollinations 确定性 seed 保证同一 slug 每次同一张图
- *   - 注入 JSON-LD（WebPage + ImageObject + FAQPage）增强 GEO
- *   - 客户端组件处理双格式 PDF 导出（US Letter + A4）
+ * GEO 双轨体系：
+ *   🤖 AI 爬虫：GeoSchema JSON-LD（SoftwareApplication + WebPage + FAQPage + BreadcrumbList + ImageObject）
+ *   👤 人类用户：BLUF 事实矩阵卡片（H1 正下方 60-80 词摘要 + 键值对事实）
  *
- * SEO 优化：
- *   - Title / Description 针对北美长尾词
- *   - FAQ Schema 覆盖 "safe for kids" / "classroom use" 等高意图问答
- *   - 面包屑 + 内部链接导流
+ * FAQ 实现：原生 <details>/<summary> —— 零 JS、可被爬虫直接读取、
+ * Google Rich Results Test 可正确识别 FAQPage schema。
  */
 
 import type { Metadata } from "next";
@@ -26,9 +22,13 @@ import {
 import type { ColoringEntry } from "@/lib/us-coloring-data";
 import { PseoClientActions } from "./pseo-client-actions";
 import LineartImage from "@/components/lineart-image";
+import GeoSchema from "@/components/geo-schema";
+import BlufSummary from "@/components/bluf-summary";
+
+const BASE_URL = "https://wangdadi.xyz";
 
 /* ============================================================
- * Generate Static Params —— 预渲染所有 156 个 slug
+ * Generate Static Params
  * ============================================================ */
 
 export function generateStaticParams() {
@@ -36,11 +36,10 @@ export function generateStaticParams() {
   return slugs.map((slug) => ({ slug }));
 }
 
-/** 开启动态参数 —— 预渲染列表外的 slug 也能实时解析渲染，不抛 404 */
 export const dynamicParams = true;
 
 /* ============================================================
- * Generate Metadata —— SEO/GEO 优化
+ * Generate Metadata —— SEO/GEO
  * ============================================================ */
 
 export async function generateMetadata(
@@ -49,13 +48,11 @@ export async function generateMetadata(
   const { slug } = await params;
   const parsed = parseSlug(slug);
   if (!parsed) {
-    return {
-      title: "Coloring Page Not Found - wangdadi.xyz",
-    };
+    return { title: "Coloring Page Not Found - wangdadi.xyz" };
   }
 
   const entry = buildEntry(parsed.subject, parsed.style, parsed.audience);
-  const canonical = `https://wangdadi.xyz/coloring-pages/${slug}`;
+  const canonical = `${BASE_URL}/coloring-pages/${slug}`;
 
   return {
     title: entry.htmlTitle,
@@ -88,14 +85,31 @@ export default async function ColoringPageDetail(
   if (!parsed) notFound();
 
   const entry = buildEntry(parsed.subject, parsed.style, parsed.audience);
-  const { url: imageUrl, finalSeed } = await fetchImage(entry, parsed.subject.prompt);
-
-  // FAQ questions — 针对北美家长/老师
-  const faqs = buildFaqs(entry);
+  const { url: imageUrl } = await fetchImage(entry, parsed.subject.prompt);
+  const canonical = `${BASE_URL}/coloring-pages/${slug}`;
+  const faqs = buildGeosSchemaFaqs(entry);
+  const breadcrumbs = [
+    { name: "Home", item: `${BASE_URL}/` },
+    { name: "Coloring Pages", item: `${BASE_URL}/coloring-pages/for-kids` },
+    { name: entry.displayTitle, item: canonical },
+  ];
 
   return (
     <main className="flex-1">
-      {/* Breadcrumb */}
+      {/* 🤖 AI 爬虫专属 JSON-LD 结构化数据 */}
+      <GeoSchema
+        pageUrl={canonical}
+        pageName={entry.displayTitle}
+        pageDescription={entry.metaDescription}
+        faqs={faqs.map((f) => ({ q: f.q, a: f.a }))}
+        breadcrumbs={breadcrumbs}
+        image={{
+          url: imageUrl,
+          name: entry.displayTitle,
+        }}
+      />
+
+      {/* 面包屑（人类可见 + 同步 BreadcrumbList JSON-LD） */}
       <nav aria-label="Breadcrumb" className="border-b bg-muted/30">
         <div className="mx-auto flex max-w-5xl items-center gap-2 px-4 py-3 text-sm text-muted-foreground">
           <Link href="/" className="hover:text-primary">Home</Link>
@@ -109,28 +123,27 @@ export default async function ColoringPageDetail(
       {/* Main content */}
       <section className="mx-auto max-w-5xl px-4 py-10">
         <div className="grid gap-8 lg:grid-cols-5">
-          {/* Left: Image + Actions */}
+          {/* Left: H1 + BLUF + Image + Actions */}
           <div className="lg:col-span-3">
-            <h1 className="mb-4 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
+            <h1 className="mb-3 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
               Free Printable {entry.displayTitle}
             </h1>
+
+            {/* 🎯 GEO 核心：BLUF 事实矩阵 —— H1 正下方 80 词客观事实 + 键值对 */}
+            <BlufSummary title={entry.displayTitle} />
+
             <p className="mb-6 text-muted-foreground">
               {entry.subject.description}
             </p>
 
-            {/* Image container — LineartImage 自动裁切水印 + 容错重试 */}
+            {/* 图片 —— LineartImage 自动裁切 + 容错 */}
             <LineartImage
               src={imageUrl}
               alt={`Free printable ${entry.displayTitle} coloring page`}
               className="border shadow-sm"
             />
 
-            {/* 调试信息 —— 确认代码是否真正生效 */}
-            <p className="mt-2 text-center text-xs text-muted-foreground">
-              Seed: {finalSeed} | Model: Turbo
-            </p>
-
-            {/* Action buttons (client component handles PDF export) */}
+            {/* Action buttons */}
             <PseoClientActions
               imageUrl={imageUrl}
               displayTitle={entry.displayTitle}
@@ -140,7 +153,6 @@ export default async function ColoringPageDetail(
 
           {/* Right: Info + Related */}
           <aside className="space-y-6 lg:col-span-2">
-            {/* Category badge */}
             <div className="rounded-xl border bg-card p-5">
               <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                 About This Page
@@ -171,89 +183,54 @@ export default async function ColoringPageDetail(
               </dl>
             </div>
 
-            {/* All audience variants for this theme */}
             <div className="rounded-xl border bg-card p-5">
               <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                 Need a Different Version?
               </h2>
               <div className="flex flex-wrap gap-2">
-                <Link
-                  href={`/coloring-pages/${entry.style.slug}-${entry.subject.slug}-for-toddlers`}
-                  className="rounded-full border px-3 py-1 text-xs hover:bg-accent"
-                >
-                  For Toddlers
-                </Link>
-                <Link
-                  href={`/coloring-pages/${entry.style.slug}-${entry.subject.slug}-for-preschoolers`}
-                  className="rounded-full border px-3 py-1 text-xs hover:bg-accent"
-                >
-                  For Preschoolers
-                </Link>
-                <Link
-                  href={`/coloring-pages/${entry.style.slug}-${entry.subject.slug}-for-kids`}
-                  className="rounded-full border px-3 py-1 text-xs hover:bg-accent"
-                >
-                  For Kids
-                </Link>
-                <Link
-                  href={`/coloring-pages/${entry.style.slug}-${entry.subject.slug}-for-adults`}
-                  className="rounded-full border px-3 py-1 text-xs hover:bg-accent"
-                >
-                  For Adults
-                </Link>
+                <Link href={`/coloring-pages/${entry.style.slug}-${entry.subject.slug}-for-toddlers`} className="rounded-full border px-3 py-1 text-xs hover:bg-accent">For Toddlers</Link>
+                <Link href={`/coloring-pages/${entry.style.slug}-${entry.subject.slug}-for-preschoolers`} className="rounded-full border px-3 py-1 text-xs hover:bg-accent">For Preschoolers</Link>
+                <Link href={`/coloring-pages/${entry.style.slug}-${entry.subject.slug}-for-kids`} className="rounded-full border px-3 py-1 text-xs hover:bg-accent">For Kids</Link>
+                <Link href={`/coloring-pages/${entry.style.slug}-${entry.subject.slug}-for-adults`} className="rounded-full border px-3 py-1 text-xs hover:bg-accent">For Adults</Link>
               </div>
             </div>
 
-            {/* Back to all coloring pages */}
-            <Link
-              href="/"
-              className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Explore more coloring pages
+            <Link href="/" className="inline-flex items-center gap-2 text-sm text-primary hover:underline">
+              <ArrowLeft className="h-4 w-4" /> Explore more coloring pages
             </Link>
           </aside>
         </div>
 
-        {/* FAQ Section */}
+        {/* ============================================================
+            FAQ Section —— 原生 <details>/<summary> + FAQPage JSON-LD 双轨
+            HTML 层可交互展开/折叠，JSON-LD 层被 Google Rich Results 直接识别
+            ============================================================ */}
         <section className="mt-12">
           <h2 className="mb-6 text-2xl font-bold">Frequently Asked Questions</h2>
           <div className="space-y-3">
             {faqs.map((faq, i) => (
-              <div
+              <details
                 key={i}
-                className="rounded-xl border bg-card"
-                itemScope
-                itemProp="mainEntity"
-                itemType="https://schema.org/Question"
+                className="group rounded-xl border bg-card open:shadow-sm"
               >
-                <h3
-                  className="px-5 py-4 font-medium"
-                  itemProp="name"
-                >
-                  {faq.q}
-                </h3>
-                <div
-                  className="border-t px-5 py-4 text-sm text-muted-foreground"
-                  itemScope
-                  itemProp="acceptedAnswer"
-                  itemType="https://schema.org/Answer"
-                >
-                  <p itemProp="text">{faq.a}</p>
+                <summary className="cursor-pointer select-none list-none px-5 py-4 pr-10 font-medium">
+                  <span className="relative inline-block">
+                    <span className="mr-2 text-primary">Q:</span>
+                    {faq.q}
+                    <span className="absolute -right-6 top-1/2 -translate-y-1/2 text-muted-foreground transition group-open:rotate-45">
+                      +
+                    </span>
+                  </span>
+                </summary>
+                <div className="border-t px-5 py-4 text-sm leading-relaxed text-muted-foreground">
+                  <span className="mr-2 font-medium text-green-700">A:</span>
+                  {faq.a}
                 </div>
-              </div>
+              </details>
             ))}
           </div>
         </section>
       </section>
-
-      {/* JSON-LD Structured Data */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(buildJsonLd(entry, faqs)),
-        }}
-      />
     </main>
   );
 }
@@ -262,19 +239,10 @@ export default async function ColoringPageDetail(
  * Helpers
  * ============================================================ */
 
-/** 获取图片 —— Pollinations Turbo + 精简短句 prompt 模板
- *
- * 反写实终极原则（用户实测验证 100% 稳定）：
- *   1. 只用正向词堆砌最核心的线稿概念
- *   2. 严禁出现任何否定词（no X 会反向激活权重！）
- *   3. model=turbo（用户实测最稳定生成线稿）
- *   4. seed + 9999999 彻底砸烂历史 CDN 缓存
- */
 async function fetchImage(
   entry: ColoringEntry,
   pureSubject: string
 ): Promise<{ url: string; finalSeed: number }> {
-  // 用户实测验证的精简短句模板 —— 绝对不要加额外词！
   const promptText =
     `coloring book page of a ${pureSubject}, black line art outline, white background`;
 
@@ -289,76 +257,27 @@ async function fetchImage(
 
 interface Faq { q: string; a: string; }
 
-function buildFaqs(entry: ColoringEntry): Faq[] {
+/**
+ * GEO 专项 FAQ —— 针对美国家长/老师搜索心智的 3 个高意图问题
+ * 这 3 个问题会被同步到 FAQPage JSON-LD schema，
+ * Google Rich Results Test 可直接识别。
+ */
+function buildGeosSchemaFaqs(entry: ColoringEntry): Faq[] {
   const title = entry.displayTitle;
+  const lowerTitle = title.toLowerCase();
+
   return [
     {
-      q: `Is this ${title} safe for young kids?`,
-      a: entry.audience.complexity === "kids"
-        ? `Yes! This ${title.toLowerCase()} features thick, clean outlines designed specifically for crayons, markers, and preschool coloring. No small details to frustrate little hands.`
-        : `This ${title.toLowerCase()} works well for kids aged 8+ who enjoy more detailed coloring. If you're looking for simpler designs, check out the "for Toddlers" version.`,
+      q: `Is this ${title} really free to print?`,
+      a: `Yes. All coloring sheets on wangdadi.xyz — including this ${lowerTitle} — are completely free for personal use, homeschooling, and classroom educational use with zero registration, zero sign-up, and zero watermarks.`,
     },
     {
-      q: `Can I use this ${title} for classroom use?`,
-      a: "Absolutely! All coloring pages on wangdadi.xyz are 100% free for teachers, homeschoolers, parents, and classroom use. Print as many copies as you need for your students.",
+      q: `What size should I print this ${title} coloring page on?`,
+      a: `It is natively formatted for standard North American US Letter paper (8.5 × 11 inches) as well as international A4 paper sizes. Both paper sizes are available as PDF export options directly below the preview.`,
     },
     {
-      q: "Do I need to sign up or create an account?",
-      a: "No sign-up required. No email needed. Just click download and start coloring — completely free, forever.",
-    },
-    {
-      q: "What paper size should I use?",
-      a: "Our coloring pages are optimized for both US Letter (8.5 × 11 inches / 216 × 279 mm) and A4 paper. The PDF buttons below let you choose your preferred format.",
-    },
-    {
-      q: "Can I use these with digital coloring apps?",
-      a: "Yes! The high-resolution PNG (2048 × 2048 px) downloads work perfectly with Procreate, GoodNotes, Notability, or any digital coloring app on tablet or desktop.",
+      q: `Are the outlines easy enough for young toddlers?`,
+      a: `Yes. The ${lowerTitle} line art is generated with bold, high-contrast single-layer contour borders to help toddlers and preschoolers stay confidently within the lines while coloring. For an even simpler version, look for the "for Toddlers" variant.`,
     },
   ];
-}
-
-function buildJsonLd(
-  entry: ColoringEntry,
-  faqs: Faq[]
-): Record<string, unknown>[] {
-  const url = `https://wangdadi.xyz/coloring-pages/${entry.slug}`;
-
-  const webPage = {
-    "@context": "https://schema.org",
-    "@type": "WebPage",
-    name: entry.displayTitle,
-    description: entry.metaDescription,
-    url,
-    isPartOf: {
-      "@type": "WebSite",
-      name: "AI Coloring Pages - wangdadi.xyz",
-      url: "https://wangdadi.xyz",
-    },
-  };
-
-  const imageObject = {
-    "@context": "https://schema.org",
-    "@type": "ImageObject",
-    name: entry.displayTitle,
-    description: `Free printable ${entry.displayTitle} coloring page in black and white line art`,
-    url,
-    contentUrl: url,
-    license: "https://creativecommons.org/publicdomain/zero/1.0/",
-    isAccessibleForFree: true,
-  };
-
-  const faqPage = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: faqs.map((faq) => ({
-      "@type": "Question",
-      name: faq.q,
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: faq.a,
-      },
-    })),
-  };
-
-  return [webPage, imageObject, faqPage];
 }
