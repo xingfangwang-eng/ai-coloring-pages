@@ -5,6 +5,7 @@ import { Download, FileDown, RefreshCw, ZoomIn } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { desaturateImageToDataUrl } from "@/lib/ai-generator";
 import type { GenerateApiSuccess } from "@/types";
 
 interface ResultPanelProps {
@@ -88,9 +89,12 @@ export function ResultPanel({ result, onRetry }: ResultPanelProps) {
       const x = (A4_WIDTH_MM - drawW) / 2;
       const y = (A4_HEIGHT_MM - drawH) / 2;
 
+      // Canvas 强制脱色 —— 保证 PDF 里是纯净黑白线稿
+      const cleanDataUrl = await desaturateImageToDataUrl(result.imageUrl);
+
       pdf.addImage(
-        result.imageUrl,
-        mimeToJspdfFormat(mimeType),
+        cleanDataUrl,
+        "PNG",
         x,
         y,
         drawW,
@@ -124,6 +128,7 @@ export function ResultPanel({ result, onRetry }: ResultPanelProps) {
           alt={`Coloring page - ${result.prompt}`}
           onClick={handleOpenNewTab}
           className="aspect-square w-full cursor-zoom-in object-contain"
+          style={{ filter: "grayscale(100%) contrast(280%) brightness(108%)" }}
         />
 
         {/* 免费用户水印蒙层（45° 半透明重复） */}

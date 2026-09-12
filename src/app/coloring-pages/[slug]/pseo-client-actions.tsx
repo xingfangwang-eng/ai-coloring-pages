@@ -11,6 +11,7 @@
 
 import { useState } from "react";
 import { Download, FileDown, FileText, Loader2 } from "lucide-react";
+import { desaturateImageToDataUrl } from "@/lib/ai-generator";
 
 interface Props {
   imageUrl: string;
@@ -88,18 +89,12 @@ export function PseoClientActions({ imageUrl, displayTitle, seed }: Props) {
       const x = (paper.w - drawW) / 2;
       const y = (paper.h - drawH) / 2;
 
-      // 先加载图片（如果是远程 URL）
-      let finalImageUrl = imageUrl;
-      if (!imageUrl.startsWith("data:")) {
-        const resp = await fetch(imageUrl);
-        const blob = await resp.blob();
-        finalImageUrl = await blobToDataUrl(blob);
-      }
+      // Canvas 强制脱色 —— 保证 PDF 里绝对没有粉腮红/绿眼睛/灰阴影
+      const cleanDataUrl = await desaturateImageToDataUrl(imageUrl);
 
-      const mime = extractMime(finalImageUrl);
       pdf.addImage(
-        finalImageUrl,
-        mimeToJspdfFormat(mime),
+        cleanDataUrl,
+        "PNG",
         x,
         y,
         drawW,

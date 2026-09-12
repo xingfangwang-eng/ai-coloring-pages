@@ -26,9 +26,9 @@ const DEFAULT_POLLINATIONS_MODEL = "turbo";
 /** seed 强制偏移量 —— 打破 Pollinations CDN 历史缓存 */
 const SEED_CACHE_BUST_OFFSET = 2026;
 
-/** 线稿 Prompt —— 简练且高权重，避免 flux/turbo 解析崩溃 */
+/** 线稿 Prompt —— 出版级工业线稿指令，严禁可爱/彩色诱导词 */
 const LINEART_TEMPLATE =
-  "simple coloring page for kids, blank white coloring sheet, black outline only, clean vector lineart, pure white background, no color, no shading: ";
+  "uncolored coloring book page, black ink line art outline, stark black contour on pure white paper, stencil, coloring sheet, zero color, zero shading, hollow outline: ";
 
 /** 构造 Pollinations 的完整 URL
  *
@@ -75,6 +75,49 @@ export function buildPollinationsUrl(params: {
 /** 已废弃 —— 保留兼容，内部自动用新模板 */
 export function wrapLineartPrompt(rawPrompt: string): string {
   return `${LINEART_TEMPLATE}${rawPrompt}`;
+}
+
+/* ============================================================
+ * 前端 Canvas 脱色工具（PDF 导出用）
+ * ============================================================ */
+
+/**
+ * 将任意图片 URL 加载到 Canvas，应用 CSS 滤镜强制纯黑白线稿，
+ * 返回 PNG data URL —— 保证 PDF 导出绝对干净的黑白线条。
+ *
+ * 滤镜参数与 LineartImage 展示层完全一致：
+ *   grayscale(100%) contrast(280%) brightness(108%)
+ */
+export async function desaturateImageToDataUrl(
+  src: string,
+  maxSize = 2048
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const ratio = Math.min(1, maxSize / Math.max(img.width, img.height));
+      const w = Math.round(img.width * ratio);
+      const h = Math.round(img.height * ratio);
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        reject(new Error("Canvas 2D context not available"));
+        return;
+      }
+      // 先铺白底（防止透明 PNG 被浏览器 filter 渲染成灰色）
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, w, h);
+      // 强制脱色滤镜
+      ctx.filter = "grayscale(100%) contrast(280%) brightness(108%)";
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL("image/png"));
+    };
+    img.onerror = () => reject(new Error("Failed to load image for PDF desaturation"));
+    img.src = src;
+  });
 }
 
 /** 生成随机 seed（Pollinations seed 范围 1 ~ 2^31-1） */

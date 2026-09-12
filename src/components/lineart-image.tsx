@@ -3,11 +3,12 @@
 /**
  * LineartImage —— 着色页图片展示组件（Client Component）
  *
- * 三重防护：
- *   1. CSS 裁切 —— overflow-hidden + scale(1.06) + objectFit: cover
- *      将 Pollinations 右下角 Logo 物理性移出可视区
- *   2. onError 自动重试 —— 加载失败时替换 seed 重新请求一次
- *   3. 加载骨架 + 失败降级 —— 网络波动时绝不显示裂图
+ * 四重防护：
+ *   1. CSS 裁切 —— overflow-hidden + scale(1.06) → 物理干掉底部 Logo
+ *   2. CSS 滤镜 —— grayscale(100%) contrast(280%) brightness(108%)
+ *      → 强制把 AI 偷偷加的粉腮红、绿眼睛、灰阴影全部漂白
+ *   3. onError 自动重试 —— 加载失败时 seed 偏移重试
+ *   4. 加载骨架 + 失败降级 —— 永不显示裂图
  */
 import { useState, useRef, useCallback } from "react";
 
@@ -107,6 +108,8 @@ export default function LineartImage({
             objectFit: "cover",
             transform: "scale(1.06)",
             transformOrigin: "top center",
+            // 强制脱色：grayscale + 极端对比度 → 粉腮红/绿眼睛/灰阴影全部漂白
+            filter: "grayscale(100%) contrast(280%) brightness(108%)",
           }}
         />
       )}
