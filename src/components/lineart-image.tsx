@@ -29,7 +29,7 @@ import { useState, useRef, useCallback } from "react";
  */
 export function processToColoringPage(
   imgElement: HTMLImageElement,
-  threshold = 135
+  threshold = 110
 ): string {
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
@@ -73,7 +73,7 @@ export function processToColoringPage(
  */
 export async function urlToColoringDataUrl(
   src: string,
-  threshold = 135
+  threshold = 110
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -104,7 +104,7 @@ export default function LineartImage({
   fallbackSrc,
   className = "",
   imgClassName = "",
-  threshold = 135,
+  threshold = 110,
 }: LineartImageProps) {
   const [retryCount, setRetryCount] = useState(0);
   const [loaded, setLoaded] = useState(false);

@@ -37,7 +37,7 @@ const LINEART_PREFIX =
   "coloring book page of a ";
 
 const LINEART_SUFFIX =
-  ", single color black line drawing, thick hollow outline, uncolored white page, simple coloring sheet, clip art vector, zero fill, pure white background";
+  ", single color black line drawing, thick hollow outline, uncolored white page, simple coloring sheet, clip art vector, zero fill, pure white background, no frame, no border, no circle, no background elements";
 
 /** 构造 Pollinations 的完整 URL
  *
