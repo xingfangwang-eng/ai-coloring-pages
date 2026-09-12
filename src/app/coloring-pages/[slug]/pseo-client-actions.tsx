@@ -11,7 +11,6 @@
 
 import { useState } from "react";
 import { Download, FileDown, FileText, Loader2 } from "lucide-react";
-import { urlToColoringDataUrl } from "@/components/lineart-image";
 
 interface Props {
   imageUrl: string;
@@ -89,11 +88,9 @@ export function PseoClientActions({ imageUrl, displayTitle, seed }: Props) {
       const x = (paper.w - drawW) / 2;
       const y = (paper.h - drawH) / 2;
 
-      // Canvas 二值化 —— PDF 里绝对是纯白底 + 纯黑线条
-      const cleanDataUrl = await urlToColoringDataUrl(imageUrl);
-
+      // PDF 直接用 AI 生成的原图 —— Disney 2D prompt 已保证线稿
       pdf.addImage(
-        cleanDataUrl,
+        imageUrl,
         "PNG",
         x,
         y,

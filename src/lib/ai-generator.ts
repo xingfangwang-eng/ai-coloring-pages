@@ -20,30 +20,27 @@ const POLLINATIONS_BASE = "https://image.pollinations.ai/prompt";
 /** Default image dimensions — 1024x1024 */
 export const DEFAULT_WIDTH = 1024;
 export const DEFAULT_HEIGHT = 1024;
-/** turbo = SDXL-Turbo，简笔线稿专家，绝无 3D 偏好 */
-const DEFAULT_POLLINATIONS_MODEL = "turbo";
+/** flux = 理解 Disney 2D 卡通 prompt 最准确 */
+const DEFAULT_POLLINATIONS_MODEL = "flux";
 
-/** seed 强制偏移量 —— 打破 Pollinations CDN 历史缓存 */
-const SEED_CACHE_BUST_OFFSET = 2026;
+/** seed 强制偏移量 —— 88888 砸烂 Pollinations 历史 CDN 缓存（含写实猫） */
+const SEED_CACHE_BUST_OFFSET = 88888;
 
 /**
- * 工业级线稿 Prompt —— 直接拼接在净化后的主体词前面
+ * Disney 2D 神级 Prompt —— 全球公认不会出 3D/写实/阴影
+ * 触发词序列在训练集中权重极高
  *
- * 为什么不用 negative？
- *   Pollinations 上的 Flux 和 Turbo 都不认 negative 参数！
- *   负向约束写在正向 prompt 里更有效（turbo 模型权重极高）。
+ * 严禁出现 clip art / vector / cute 等诱导写实的词
+ * 严禁出现 no color / no shading 等否定式（flux/turbo 不认）
  */
-const LINEART_PREFIX =
-  "coloring book page of a ";
-
-const LINEART_SUFFIX =
-  ", single color black line drawing, thick hollow outline, uncolored white page, simple coloring sheet, clip art vector, zero fill, pure white background, no frame, no border, no circle, no background elements";
+const DISNEY_LINEART_PROMPT =
+  "disney coloring book page, simple 2d cartoon {{SUBJECT}}, preschool coloring sheet, clean thick black contour lines, hollow empty shapes for crayons, pure white paper background, no gray, no shading, no background, 2d flat lineart";
 
 /** 构造 Pollinations 的完整 URL
  *
- *   1. model=turbo（SDXL-Turbo，简笔线稿专家）
- *   2. prompt 必须是净化后的主体词（不能带 cute/toddlers 等毒药词）
- *   3. seed +2026 偏移打破 CDN 缓存
+ *   1. model=flux（理解 Disney 2D 触发词最准确）
+ *   2. prompt 必须是净化后的主体词（如 "cat"，不带 cute/toddlers）
+ *   3. seed +88888 砸烂 CDN 缓存
  *   4. nologo=true 去水印
  */
 export function buildPollinationsUrl(params: {
@@ -61,8 +58,8 @@ export function buildPollinationsUrl(params: {
     seed,
   } = params;
 
-  // 工业级线稿 prompt：前后加持 + 只接净化后的主体词
-  const finalPrompt = `${LINEART_PREFIX}${pureSubject}${LINEART_SUFFIX}`;
+  // Disney 2D 神级 prompt —— 替换 {{SUBJECT}} 占位符
+  const finalPrompt = DISNEY_LINEART_PROMPT.replace(/\{\{SUBJECT\}\}/g, pureSubject);
   const encoded = encodeURIComponent(finalPrompt);
 
   const usp = new URLSearchParams({
@@ -82,50 +79,7 @@ export function buildPollinationsUrl(params: {
 
 /** 保留兼容 */
 export function wrapLineartPrompt(rawPrompt: string): string {
-  return `${LINEART_PREFIX}${rawPrompt}${LINEART_SUFFIX}`;
-}
-
-/* ============================================================
- * 前端 Canvas 脱色工具（PDF 导出用）
- * ============================================================ */
-
-/**
- * 将任意图片 URL 加载到 Canvas，应用 CSS 滤镜强制纯黑白线稿，
- * 返回 PNG data URL —— 保证 PDF 导出绝对干净的黑白线条。
- *
- * 滤镜参数与 LineartImage 展示层完全一致：
- *   grayscale(100%) contrast(280%) brightness(108%)
- */
-export async function desaturateImageToDataUrl(
-  src: string,
-  maxSize = 2048
-): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => {
-      const ratio = Math.min(1, maxSize / Math.max(img.width, img.height));
-      const w = Math.round(img.width * ratio);
-      const h = Math.round(img.height * ratio);
-      const canvas = document.createElement("canvas");
-      canvas.width = w;
-      canvas.height = h;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) {
-        reject(new Error("Canvas 2D context not available"));
-        return;
-      }
-      // 先铺白底（防止透明 PNG 被浏览器 filter 渲染成灰色）
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, w, h);
-      // 强制脱色滤镜
-      ctx.filter = "grayscale(100%) contrast(280%) brightness(108%)";
-      ctx.drawImage(img, 0, 0, w, h);
-      resolve(canvas.toDataURL("image/png"));
-    };
-    img.onerror = () => reject(new Error("Failed to load image for PDF desaturation"));
-    img.src = src;
-  });
+  return DISNEY_LINEART_PROMPT.replace(/\{\{SUBJECT\}\}/g, rawPrompt);
 }
 
 /** 生成随机 seed（Pollinations seed 范围 1 ~ 2^31-1） */

@@ -5,7 +5,6 @@ import { Download, FileDown, RefreshCw, ZoomIn } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import LineartImage, { urlToColoringDataUrl } from "@/components/lineart-image";
 import type { GenerateApiSuccess } from "@/types";
 
 interface ResultPanelProps {
@@ -89,12 +88,9 @@ export function ResultPanel({ result, onRetry }: ResultPanelProps) {
       const x = (A4_WIDTH_MM - drawW) / 2;
       const y = (A4_HEIGHT_MM - drawH) / 2;
 
-      // Canvas 二值化 —— 保证 PDF 里是纯白底 + 纯黑线条
-      const cleanDataUrl = await urlToColoringDataUrl(result.imageUrl);
-
       pdf.addImage(
-        cleanDataUrl,
-        "PNG",
+        result.imageUrl,
+        mimeToJspdfFormat(mimeType),
         x,
         y,
         drawW,
@@ -121,12 +117,13 @@ export function ResultPanel({ result, onRetry }: ResultPanelProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* 预览图 —— LineartImage 自动 Canvas 二值化 */}
-      <div className="relative rounded-xl border bg-muted/30 overflow-hidden">
-        <LineartImage
+      {/* 预览图 */}
+      <div className="relative overflow-hidden rounded-xl border bg-muted/30">
+        <img
           src={result.imageUrl}
           alt={`Coloring page - ${result.prompt}`}
-          className="rounded-none border-0"
+          onClick={handleOpenNewTab}
+          className="aspect-square w-full cursor-zoom-in object-contain"
         />
 
         {/* 免费用户水印蒙层（45° 半透明重复） */}
