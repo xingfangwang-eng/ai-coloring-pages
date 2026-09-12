@@ -38,6 +38,12 @@ const UNIVERSAL_CONSTRAINTS = [
   "no highlights",
   "no 3D rendering",
   "no photorealism",
+  // === 防 AI 幻觉生成文字/签名 ===
+  "no watermark",
+  "no text",
+  "no signature",
+  "no logo",
+  "pure white borders",
 ];
 
 /**

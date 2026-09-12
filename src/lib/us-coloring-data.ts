@@ -315,6 +315,15 @@ export function getAllColoringEntries(): ColoringEntry[] {
   return entries;
 }
 
+/** 全局负向约束词 —— 防 AI 幻觉生成文字/签名 */
+const PROMPT_NEGATIVE_TAGS = [
+  "no watermark",
+  "no text",
+  "no signature",
+  "no logo",
+  "pure white borders",
+];
+
 /** 构建单个 pSEO 条目 */
 export function buildEntry(
   subject: Subject,
@@ -334,6 +343,7 @@ export function buildEntry(
       subject.prompt,
       style.promptTag,
       audience.promptTag,
+      ...PROMPT_NEGATIVE_TAGS,
     ].join(", "),
     deterministicSeed,
     htmlTitle: `Free Printable ${displayTitle} (Instant PDF Download) - wangdadi.xyz`,
