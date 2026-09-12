@@ -85,7 +85,7 @@ export default async function ColoringPageDetail(
   if (!parsed) notFound();
 
   const entry = buildEntry(parsed.subject, parsed.style, parsed.audience);
-  const imageUrl = await fetchImage(entry);
+  const imageUrl = await fetchImage(entry, parsed.subject.prompt);
 
   // FAQ questions — 针对北美家长/老师
   const faqs = buildFaqs(entry);
@@ -254,18 +254,21 @@ export default async function ColoringPageDetail(
  * Helpers
  * ============================================================ */
 
-/** 获取图片（带缓存） */
-async function fetchImage(entry: ColoringEntry): Promise<string> {
-  // 注意：这里我们不用 dataUrl（太大不适合预渲染输出的 HTML），
-  // 而是直接用 Pollinations 的图片 URL，让客户端去加载。
-  // 但为了确保图片存在，我们仍然可以预请求一次并缓存。
+/** 获取图片（带缓存）
+ *
+ * 关键：只传 subjectPrompt（纯净主体词如 "cat"），
+ * 绝对不传 entry.fullPrompt（它包含 style.promptTag "cute" 等毒药词）。
+ */
+async function fetchImage(
+  entry: ColoringEntry,
+  subjectPrompt: string
+): Promise<string> {
   const { buildPollinationsUrl } = await import("@/lib/ai-generator");
   const url = buildPollinationsUrl({
-    prompt: entry.fullPrompt,
+    prompt: subjectPrompt, // 净化后的主体词（如 "cat"）
     seed: entry.deterministicSeed,
-    width: 2048,
-    height: 2048,
-    model: "flux",
+    // 不传 model —— 走默认值 turbo
+    // 不传 width/height —— 走默认值 1024
   });
   return url;
 }

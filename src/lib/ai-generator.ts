@@ -20,33 +20,31 @@ const POLLINATIONS_BASE = "https://image.pollinations.ai/prompt";
 /** Default image dimensions — 1024x1024 */
 export const DEFAULT_WIDTH = 1024;
 export const DEFAULT_HEIGHT = 1024;
-/** flux = 细节更好的线稿模型 */
-const DEFAULT_POLLINATIONS_MODEL = "flux";
+/** turbo = SDXL-Turbo，简笔线稿专家，绝无 3D 偏好 */
+const DEFAULT_POLLINATIONS_MODEL = "turbo";
 
 /** seed 强制偏移量 —— 打破 Pollinations CDN 历史缓存 */
 const SEED_CACHE_BUST_OFFSET = 2026;
 
-/** 正向 Prompt —— 全球验证的儿童涂色页公式
- *  强调空心线条、无填充、儿童画、剪贴画风格
+/**
+ * 工业级线稿 Prompt —— 直接拼接在净化后的主体词前面
+ *
+ * 为什么不用 negative？
+ *   Pollinations 上的 Flux 和 Turbo 都不认 negative 参数！
+ *   负向约束写在正向 prompt 里更有效（turbo 模型权重极高）。
  */
-const LINEART_TEMPLATE =
-  "children coloring book page, simple outline drawing of ";
+const LINEART_PREFIX =
+  "coloring book page of a ";
 
-/** 正向 Prompt 后缀 —— 强化空心线条 + 白纸背景 */
 const LINEART_SUFFIX =
-  ", clean thin contour lines, empty uncolored white shapes for coloring, kindergarten line art, clip art style, pure white paper background";
-
-/** 负向 Prompt —— 封杀黑块、实心填充、阴影、彩色 */
-const LINEART_NEGATIVE =
-  "solid black fill, black background, black circle, ink wash, dark, shading, shadows, grayscale, gradients, color, realistic, photo, 3d, complex details";
+  ", single color black line drawing, thick hollow outline, uncolored white page, simple coloring sheet, clip art vector, zero fill, pure white background";
 
 /** 构造 Pollinations 的完整 URL
  *
- *   1. 正向 prompt 强调空心线稿
- *   2. negative 参数封杀黑块/阴影/彩色
- *   3. model=flux（比 turbo 线条更干净）
- *   4. seed +2026 偏移打破 CDN 缓存
- *   5. nologo=true 去水印
+ *   1. model=turbo（SDXL-Turbo，简笔线稿专家）
+ *   2. prompt 必须是净化后的主体词（不能带 cute/toddlers 等毒药词）
+ *   3. seed +2026 偏移打破 CDN 缓存
+ *   4. nologo=true 去水印
  */
 export function buildPollinationsUrl(params: {
   prompt: string;
@@ -56,23 +54,22 @@ export function buildPollinationsUrl(params: {
   seed?: number;
 }): string {
   const {
-    prompt: rawPrompt,
+    prompt: pureSubject,
     width = DEFAULT_WIDTH,
     height = DEFAULT_HEIGHT,
     model = DEFAULT_POLLINATIONS_MODEL,
     seed,
   } = params;
 
-  const finalPrompt = `${LINEART_TEMPLATE}${rawPrompt}${LINEART_SUFFIX}`;
+  // 工业级线稿 prompt：前后加持 + 只接净化后的主体词
+  const finalPrompt = `${LINEART_PREFIX}${pureSubject}${LINEART_SUFFIX}`;
   const encoded = encodeURIComponent(finalPrompt);
-  const negative = encodeURIComponent(LINEART_NEGATIVE);
 
   const usp = new URLSearchParams({
     width: String(width),
     height: String(height),
     model,
     nologo: "true",
-    negative,
   });
 
   if (seed !== undefined) {
@@ -83,9 +80,9 @@ export function buildPollinationsUrl(params: {
   return `${POLLINATIONS_BASE}/${encoded}?${usp.toString()}`;
 }
 
-/** 保留兼容 —— 用新模板 */
+/** 保留兼容 */
 export function wrapLineartPrompt(rawPrompt: string): string {
-  return `${LINEART_TEMPLATE}${rawPrompt}${LINEART_SUFFIX}`;
+  return `${LINEART_PREFIX}${rawPrompt}${LINEART_SUFFIX}`;
 }
 
 /* ============================================================

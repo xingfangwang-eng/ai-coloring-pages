@@ -19,6 +19,7 @@ import {
   AUDIENCES,
   STYLES,
   buildEntry,
+  parseSlug,
   slugToDeterministicSeed,
 } from "@/lib/us-coloring-data";
 import { buildPollinationsUrl } from "@/lib/ai-generator";
@@ -212,7 +213,7 @@ const CATEGORY_META: { key: string; label: string; emoji: string }[] = [
   { key: "food", label: "Food & Sweets", emoji: "🍕" },
 ];
 
-/** 着色页卡片 —— 用 buildPollinationsUrl（自动去水印 + 黑白线稿 + CDN 缓存破） */
+/** 着色页卡片 —— 用净化后的主体词 + turbo 模型 */
 function ColoringCard({ slug }: { slug: string }) {
   const seed = slugToDeterministicSeed(slug);
   const title = slug
@@ -221,12 +222,16 @@ function ColoringCard({ slug }: { slug: string }) {
     .replace(/-/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());
 
-  // flux 模型 + 自动 seed 偏移 + nologo + negative 封杀黑块
+  // 🎯 关键：从 slug 中提取纯净主体词（如 "cat"），
+  // 绝对不把 "cute-cat-for-toddlers" 整个喂给 AI！
+  const parsed = parseSlug(slug);
+  const pureSubject = parsed?.subject.prompt ?? slug.split("-").slice(1, -1).join(" ");
+
   const imgUrl = buildPollinationsUrl({
-    prompt: slug,
+    prompt: pureSubject, // 只传纯净主体词
     width: 400,
     height: 400,
-    model: "flux",
+    // 不传 model —— 走默认值 turbo
     seed,
   });
 
