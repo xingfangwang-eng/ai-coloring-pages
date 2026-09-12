@@ -85,7 +85,7 @@ export default async function ColoringPageDetail(
   if (!parsed) notFound();
 
   const entry = buildEntry(parsed.subject, parsed.style, parsed.audience);
-  const imageUrl = await fetchImage(entry, parsed.subject.prompt);
+  const { url: imageUrl, finalSeed } = await fetchImage(entry, parsed.subject.prompt);
 
   // FAQ questions — 针对北美家长/老师
   const faqs = buildFaqs(entry);
@@ -121,6 +121,11 @@ export default async function ColoringPageDetail(
               alt={`Free printable ${entry.displayTitle} coloring page`}
               className="border shadow-sm"
             />
+
+            {/* 调试信息 —— 确认代码是否真正生效 */}
+            <p className="mt-2 text-center text-xs text-muted-foreground">
+              Seed: {finalSeed} | Model: Flux-LineArt
+            </p>
 
             {/* Action buttons (client component handles PDF export) */}
             <PseoClientActions
@@ -254,23 +259,31 @@ export default async function ColoringPageDetail(
  * Helpers
  * ============================================================ */
 
-/** 获取图片（带缓存）
+/** 获取图片 —— 直接手写 URL（绕过 buildPollinationsUrl 保证自然语言长句 prompt）
  *
- * 关键：只传 subjectPrompt（纯净主体词如 "cat"），
- * 绝对不传 entry.fullPrompt（它包含 style.promptTag "cute" 等毒药词）。
+ * 反写实核心策略：
+ *   1. 自然语言完整长句（驯服 Flux 的唯一方法）
+ *   2. seed + 999999 砸烂 Pollinations CDN 上所有历史缓存
+ *   3. 仅传纯净主体词（如 "cat"），不传 cute/toddlers 等毒药词
  */
 async function fetchImage(
   entry: ColoringEntry,
-  subjectPrompt: string
-): Promise<string> {
-  const { buildPollinationsUrl } = await import("@/lib/ai-generator");
-  const url = buildPollinationsUrl({
-    prompt: subjectPrompt, // 净化后的主体词（如 "cat"）
-    seed: entry.deterministicSeed,
-    // 不传 model —— 走默认值 turbo
-    // 不传 width/height —— 走默认值 1024
-  });
-  return url;
+  pureSubject: string
+): Promise<{ url: string; finalSeed: number }> {
+  // 工业级反写实自然语言 prompt —— 完整长句
+  const promptText =
+    `A coloring book page for a 3-year-old toddler. A simple 2D cartoon outline of a ${pureSubject}. ` +
+    `Thick black marker lines, completely hollow shapes, plain pure white paper background. ` +
+    `Absolute zero shading, no gray colors, no gradients, no photorealism, no 3D effects, clean blank coloring sheet.`;
+
+  const encodedPrompt = encodeURIComponent(promptText);
+  // seed + 999999 彻底砸烂 CDN 上那只写实猫的历史缓存
+  const finalSeed = entry.deterministicSeed + 999999;
+  const url =
+    `https://image.pollinations.ai/prompt/${encodedPrompt}` +
+    `?width=1024&height=1024&model=flux&nologo=true&seed=${finalSeed}`;
+
+  return { url, finalSeed };
 }
 
 interface Faq { q: string; a: string; }
