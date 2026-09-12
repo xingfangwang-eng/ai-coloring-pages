@@ -25,6 +25,7 @@ import {
 } from "@/lib/us-coloring-data";
 import type { ColoringEntry } from "@/lib/us-coloring-data";
 import { PseoClientActions } from "./pseo-client-actions";
+import LineartImage from "@/components/lineart-image";
 
 /* ============================================================
  * Generate Static Params —— 预渲染所有 156 个 slug
@@ -114,15 +115,12 @@ export default async function ColoringPageDetail(
               {entry.subject.description}
             </p>
 
-            {/* Image container */}
-            <div className="relative overflow-hidden rounded-2xl border bg-white shadow-sm">
-              <img
-                src={imageUrl}
-                alt={`Free printable ${entry.displayTitle} coloring page`}
-                className="aspect-square w-full object-contain"
-                loading="lazy"
-              />
-            </div>
+            {/* Image container — LineartImage 自动裁切水印 + 容错重试 */}
+            <LineartImage
+              src={imageUrl}
+              alt={`Free printable ${entry.displayTitle} coloring page`}
+              className="border shadow-sm"
+            />
 
             {/* Action buttons (client component handles PDF export) */}
             <PseoClientActions

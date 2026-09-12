@@ -17,63 +17,25 @@ import { buildColoringPrompt } from "./prompt-engineering";
 
 const POLLINATIONS_BASE = "https://image.pollinations.ai/prompt";
 
-/** Default image dimensions — 2048x2048 = US Letter / A4 print quality */
-export const DEFAULT_WIDTH = 2048;
-export const DEFAULT_HEIGHT = 2048;
-const DEFAULT_POLLINATIONS_MODEL = "flux";
+/** Default image dimensions — 1024x1024（turbo 模型最优尺寸 + 更快） */
+export const DEFAULT_WIDTH = 1024;
+export const DEFAULT_HEIGHT = 1024;
+/** turbo = 简笔画专用模型，比 flux 快 5 倍，绝不会出 3D 阴影 */
+const DEFAULT_POLLINATIONS_MODEL = "turbo";
 
-/** 全局负向提示词（Pollinations URL 的 negative 参数） */
-const POLLINATIONS_NEGATIVE =
-  "color,shading,shadow,realistic,3d,gradients,watermark,text,logo,signature,photorealistic,photography,cinematic";
-
-/** seed 强制偏移量 —— 打破 Pollinations CDN 历史缓存（2026 年版本号） */
+/** seed 强制偏移量 —— 打破 Pollinations CDN 历史缓存 */
 const SEED_CACHE_BUST_OFFSET = 2026;
 
-/** 线稿 Prompt 前置包装 —— 强制 AI 输出黑白涂色页 */
-const LINEART_PREFIX =
-  "strictly coloring book page, pure black and white line art, strictly black outlines only, blank coloring sheet, ";
+/** 线稿 Prompt —— 简练且高权重，避免 flux/turbo 解析崩溃 */
+const LINEART_TEMPLATE =
+  "simple coloring page for kids, blank white coloring sheet, black outline only, clean vector lineart, pure white background, no color, no shading: ";
 
-/** 线稿 Prompt 后置负向约束 —— 极高权重压制彩色/3D */
-const LINEART_SUFFIX =
-  ", absolutely no color, no shading, no grayscale, no gradients, no texture, no 3D rendering, no photorealism, no watermark, no text, no signature, no logo";
-
-/** Google Imagen 模型选择 —— 优先使用 Nano Banana 2 */
-const GOOGLE_IMAGEN_MODELS = [
-  "gemini-3.1-flash-image",       // 最新 Nano Banana 2（免费额度友好）
-  "gemini-2.5-flash-image",       // Nano Banana 1（稳定）
-  "gemini-3.1-flash-lite-image",  // 轻量化版本
-] as const;
-
-/* ============================================================
- * 通用工具
- * ============================================================ */
-
-/** 生成随机 seed（Pollinations seed 范围 1 ~ 2^31-1） */
-export function randomSeed(): number {
-  return Math.floor(Math.random() * 2_147_483_646) + 1;
-}
-
-/** 将 base64 + mime 组装成 data URL */
-function toDataUrl(base64: string, mime: string): string {
-  return `data:${mime};base64,${base64}`;
-}
-
-/* ============================================================
- * Engine 2: Pollinations（降级 + pSEO 主引擎）
- * ============================================================ */
-
-/** 强制包装线稿 prompt —— 在用户 prompt 前后加持极高权重黑白约束 */
-export function wrapLineartPrompt(rawPrompt: string): string {
-  return `${LINEART_PREFIX}${rawPrompt}${LINEART_SUFFIX}`;
-}
-
-/** 构造 Pollinations 的完整 URL（仅字符串拼接，不发起请求）
+/** 构造 Pollinations 的完整 URL
  *
- * 强制特性：
- *   1. seed 偏移 +2026 → 打破 CDN 历史缓存（老图带水印/彩色）
- *   2. negative 参数 → 双重保险压制彩色/3D/水印
- *   3. nologo=true → 去除官方水印
- *   4. prompt 自动包装为严格黑白线稿指令
+ * 三重保障：
+ *   1. model=turbo —— 简笔画专用，快 5 倍，绝不会画 3D
+ *   2. 简练 prompt 模板 —— 避免解析崩溃
+ *   3. seed 偏移 +2026 + nologo=true
  */
 export function buildPollinationsUrl(params: {
   prompt: string;
@@ -90,20 +52,18 @@ export function buildPollinationsUrl(params: {
     seed,
   } = params;
 
-  // 1) 包装为严格黑白线稿 prompt
-  const wrappedPrompt = wrapLineartPrompt(rawPrompt);
-  const encoded = encodeURIComponent(wrappedPrompt);
+  // 简练模板：避免过长 prompt 引起 turbo 解析崩溃
+  const finalPrompt = `${LINEART_TEMPLATE}${rawPrompt}`;
+  const encoded = encodeURIComponent(finalPrompt);
 
-  // 2) 构造查询参数
   const usp = new URLSearchParams({
     width: String(width),
     height: String(height),
     model,
     nologo: "true",
-    negative: POLLINATIONS_NEGATIVE,
   });
 
-  // 3) seed 强制偏移 —— 打破 CDN 缓存
+  // seed 偏移打破 CDN 缓存
   if (seed !== undefined) {
     const bustedSeed = ((seed + SEED_CACHE_BUST_OFFSET) % 2_147_483_646) + 1;
     usp.set("seed", String(bustedSeed));
@@ -111,6 +71,28 @@ export function buildPollinationsUrl(params: {
 
   return `${POLLINATIONS_BASE}/${encoded}?${usp.toString()}`;
 }
+
+/** 已废弃 —— 保留兼容，内部自动用新模板 */
+export function wrapLineartPrompt(rawPrompt: string): string {
+  return `${LINEART_TEMPLATE}${rawPrompt}`;
+}
+
+/** 生成随机 seed（Pollinations seed 范围 1 ~ 2^31-1） */
+export function randomSeed(): number {
+  return Math.floor(Math.random() * 2_147_483_646) + 1;
+}
+
+/** 将 base64 + mime 组装成 data URL */
+function toDataUrl(base64: string, mime: string): string {
+  return `data:${mime};base64,${base64}`;
+}
+
+/** Google Imagen 模型选择 —— 优先使用 Nano Banana 2 */
+const GOOGLE_IMAGEN_MODELS = [
+  "gemini-3.1-flash-image",
+  "gemini-2.5-flash-image",
+  "gemini-3.1-flash-lite-image",
+] as const;
 
 /** 调用 Pollinations 生成图片（始终可用） */
 async function fetchFromPollinations(

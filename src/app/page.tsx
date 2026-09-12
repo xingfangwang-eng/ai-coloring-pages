@@ -22,6 +22,7 @@ import {
   slugToDeterministicSeed,
 } from "@/lib/us-coloring-data";
 import { buildPollinationsUrl } from "@/lib/ai-generator";
+import LineartImage from "@/components/lineart-image";
 
 export const metadata = {
   title:
@@ -220,12 +221,12 @@ function ColoringCard({ slug }: { slug: string }) {
     .replace(/-/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());
 
-  // 让 buildPollinationsUrl 自动处理：黑白包装 + nologo + negative + seed+2026 缓存破
+  // turbo 模型 + 自动 seed 偏移 + nologo
   const imgUrl = buildPollinationsUrl({
     prompt: slug,
     width: 400,
     height: 400,
-    model: "flux",
+    model: "turbo",
     seed,
   });
 
@@ -234,15 +235,11 @@ function ColoringCard({ slug }: { slug: string }) {
       href={`/coloring-pages/${slug}`}
       className="group block overflow-hidden rounded-xl border bg-card transition hover:-translate-y-0.5 hover:shadow-lg"
     >
-      <div className="relative aspect-square bg-white">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={imgUrl}
-          alt={`${title} coloring page`}
-          className="h-full w-full object-contain transition group-hover:scale-105"
-          loading="lazy"
-        />
-      </div>
+      <LineartImage
+        src={imgUrl}
+        alt={`${title} coloring page`}
+        className="rounded-none border-0"
+      />
       <div className="border-t bg-card px-3 py-2">
         <p className="truncate text-xs font-medium">{title}</p>
       </div>
