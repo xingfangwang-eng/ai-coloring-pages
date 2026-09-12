@@ -50,7 +50,7 @@ export async function generateMetadata(
     };
   }
 
-  const entry = buildEntry(parsed.theme, parsed.audience);
+  const entry = buildEntry(parsed.subject, parsed.style, parsed.audience);
   const canonical = `https://wangdadi.xyz/coloring-pages/${slug}`;
 
   return {
@@ -83,7 +83,7 @@ export default async function ColoringPageDetail(
   const parsed = parseSlug(slug);
   if (!parsed) notFound();
 
-  const entry = buildEntry(parsed.theme, parsed.audience);
+  const entry = buildEntry(parsed.subject, parsed.style, parsed.audience);
   const imageUrl = await fetchImage(entry);
 
   // FAQ questions — 针对北美家长/老师
@@ -111,7 +111,7 @@ export default async function ColoringPageDetail(
               Free Printable {entry.displayTitle}
             </h1>
             <p className="mb-6 text-muted-foreground">
-              {entry.theme.description}
+              {entry.subject.description}
             </p>
 
             {/* Image container */}
@@ -142,7 +142,7 @@ export default async function ColoringPageDetail(
               <dl className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <dt className="text-muted-foreground">Theme</dt>
-                  <dd className="font-medium capitalize">{entry.theme.category}</dd>
+                  <dd className="font-medium capitalize">{entry.subject.category}</dd>
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-muted-foreground">Perfect For</dt>
@@ -172,19 +172,25 @@ export default async function ColoringPageDetail(
               </h2>
               <div className="flex flex-wrap gap-2">
                 <Link
-                  href={`/coloring-pages/${entry.theme.slug}-for-toddlers`}
+                  href={`/coloring-pages/${entry.style.slug}-${entry.subject.slug}-for-toddlers`}
                   className="rounded-full border px-3 py-1 text-xs hover:bg-accent"
                 >
                   For Toddlers
                 </Link>
                 <Link
-                  href={`/coloring-pages/${entry.theme.slug}-for-kids`}
+                  href={`/coloring-pages/${entry.style.slug}-${entry.subject.slug}-for-preschoolers`}
+                  className="rounded-full border px-3 py-1 text-xs hover:bg-accent"
+                >
+                  For Preschoolers
+                </Link>
+                <Link
+                  href={`/coloring-pages/${entry.style.slug}-${entry.subject.slug}-for-kids`}
                   className="rounded-full border px-3 py-1 text-xs hover:bg-accent"
                 >
                   For Kids
                 </Link>
                 <Link
-                  href={`/coloring-pages/${entry.theme.slug}-for-adults`}
+                  href={`/coloring-pages/${entry.style.slug}-${entry.subject.slug}-for-adults`}
                   className="rounded-full border px-3 py-1 text-xs hover:bg-accent"
                 >
                   For Adults

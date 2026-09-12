@@ -17,6 +17,7 @@ import {
   getAllUSColoringSlugs,
   THEMES,
   AUDIENCES,
+  STYLES,
   buildEntry,
   slugToDeterministicSeed,
 } from "@/lib/us-coloring-data";
@@ -125,7 +126,11 @@ export default function HomePage() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {CATEGORY_META.map((cat) => {
               const catThemes = THEMES.filter((t) => t.category === cat.key);
-              const catSlugs = catThemes.map((t) => `${t.slug}-for-kids`);
+              const defaultStyle = STYLES.find((s) => s.slug === "cute") ?? STYLES[0];
+              const defaultAudience = AUDIENCES.find((a) => a.slug === "for-kids") ?? AUDIENCES[1];
+              const catSlugs = catThemes.map(
+                (t) => `${defaultStyle.slug}-${t.slug}-${defaultAudience.slug}`
+              );
 
               return (
                 <div key={cat.key} className="rounded-xl border bg-card p-5">
@@ -135,18 +140,20 @@ export default function HomePage() {
                     {catThemes.length} coloring pages
                   </p>
                   <div className="flex flex-wrap gap-1.5">
-                    {catSlugs.slice(0, 3).map((s) => (
-                      <Link
-                        key={s}
-                        href={`/coloring-pages/${s}`}
-                        className="rounded-full border bg-background px-2.5 py-0.5 text-[11px] text-muted-foreground transition hover:bg-accent hover:text-foreground"
-                      >
-                        {buildEntry(
-                          THEMES.find((t) => s.replace("-for-kids", "") === t.slug)!,
-                          AUDIENCES[1]
-                        ).theme.title}
-                      </Link>
-                    ))}
+                    {catSlugs.slice(0, 3).map((s) => {
+                      // 从 slug 反向解析 subject title
+                      const slugParts = s.replace("-for-kids", "").replace(/^cute-/, "").replace(/^simple-/, "").replace(/^detailed-/, "").replace(/^kawaii-/, "").replace(/^easy-/, "");
+                      const subject = THEMES.find((t) => t.slug === slugParts);
+                      return (
+                        <Link
+                          key={s}
+                          href={`/coloring-pages/${s}`}
+                          className="rounded-full border bg-background px-2.5 py-0.5 text-[11px] text-muted-foreground transition hover:bg-accent hover:text-foreground"
+                        >
+                          {subject?.title ?? slugParts}
+                        </Link>
+                      );
+                    })}
                   </div>
                 </div>
               );
@@ -194,11 +201,11 @@ export default function HomePage() {
 
 const CATEGORY_META: { key: string; label: string; emoji: string }[] = [
   { key: "holidays", label: "Holidays", emoji: "🎄" },
-  { key: "cartoons", label: "Cartoons & Characters", emoji: "🦄" },
+  { key: "fantasy", label: "Fantasy & Characters", emoji: "🦄" },
   { key: "animals", label: "Animals", emoji: "🐶" },
   { key: "nature", label: "Nature & Landscapes", emoji: "🌳" },
   { key: "vehicles", label: "Vehicles", emoji: "🚗" },
-  { key: "fantasy", label: "Fantasy & Magic", emoji: "🏰" },
+  { key: "characters", label: "Characters", emoji: "⭐" },
   { key: "education", label: "Educational", emoji: "🔤" },
   { key: "food", label: "Food & Sweets", emoji: "🍕" },
 ];

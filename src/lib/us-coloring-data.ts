@@ -1,633 +1,420 @@
 /**
- * 北美市场着色页长尾词库 (us-coloring-data.ts)
+ * 北美市场着色页长尾词库 —— 笛卡尔积版 (us-coloring-data.ts)
  *
- * 目标：覆盖美国家长、K12 老师的高搜索意图关键词，
- *       通过 slug × 受众后缀矩阵组合生成 100+ 条 pSEO 落地页。
+ * 三重矩阵：SUBJECTS (100+) × STYLES (5) × AUDIENCES (4) ≈ 2000 条 pSEO slug
+ * Slug 格式：{style}-{subject}-{audience}
+ *   e.g. cute-cat-for-toddlers, detailed-dragon-for-adults
  *
- * 数据结构：
- *   - THEMES: 20+ 核心主题（节日、流行文化、自然、教育…）
- *   - AUDIENCES: 3 档受众（粗线条 for-toddlers / 标准 for-kids / 细致 for-adults）
- *   - 每个 slug 携带：英文 prompt（用于 AI 生成线稿）、title、meta 字段
+ * 核心收益：
+ *   - 覆盖北美长尾搜索 "cute dinosaur coloring page for toddlers"
+ *   - 每个主题 × 风格 × 受众 都有独立 URL —— Google 收录面爆炸式扩张
+ *   - 每个 slug → Pollinations 确定性 seed —— 爬虫每次扫到同一张图
  */
 
-export interface ColoringTheme {
-  /** URL slug 片段（kebab-case） */
+/* ============================================================
+ * 类型定义
+ * ============================================================ */
+
+export type SubjectCategory =
+  | "animals"
+  | "holidays"
+  | "vehicles"
+  | "fantasy"
+  | "nature"
+  | "food"
+  | "characters"
+  | "education";
+
+/** 主体：独立可着色对象 */
+export interface Subject {
+  /** URL slug（kebab-case，不带风格/受众） */
   slug: string;
-  /** 主题类别 —— 用于首页分类标签 */
-  category:
-    | "holidays"
-    | "cartoons"
-    | "animals"
-    | "nature"
-    | "vehicles"
-    | "fantasy"
-    | "education"
-    | "food";
-  /** AI 生成时的英文 prompt 主体（不含受众后缀） */
-  prompt: string;
-  /** 人类可读标题 */
+  /** 英文标题 */
   title: string;
-  /** 英文描述（用于 SEO meta） */
+  /** AI 生成时的 prompt 主体 */
+  prompt: string;
+  /** SEO meta description */
   description: string;
-  /** 建议 seed 偏移 —— 确保 pSEO 页确定性输出 */
-  seedBase: number;
+  /** 分类 —— 用于首页展示 */
+  category: SubjectCategory;
 }
 
-/** 三档目标受众（北美家庭搜索习惯） */
-export interface Audience {
-  slug: string;           // e.g. "for-toddlers"
-  label: string;          // e.g. "for Toddlers"
-  complexity: "kids" | "adults";
-  /** 粗线/细线提示 —— 传给 AI 的额外 prompt tag */
+/** 修饰风格 */
+export interface Style {
+  slug: string;          // e.g. "cute"
+  label: string;         // e.g. "Cute Style"
+  /** AI prompt tag —— 传给图片模型 */
   promptTag: string;
+  /** 复杂度 */
+  complexity: "kids" | "adults";
 }
+
+/** 目标受众 */
+export interface Audience {
+  slug: string;          // e.g. "for-toddlers"
+  label: string;         // e.g. "for Toddlers"
+  promptTag: string;
+  complexity: "kids" | "adults";
+}
+
+/* ============================================================
+ * 风格库 (5 种)
+ * ============================================================ */
+
+export const STYLES: Style[] = [
+  {
+    slug: "cute",
+    label: "Cute",
+    promptTag: "super cute, adorable expression, big round eyes, chibi proportions",
+    complexity: "kids",
+  },
+  {
+    slug: "simple",
+    label: "Simple",
+    promptTag: "very simple minimal shapes, few lines, basic geometry",
+    complexity: "kids",
+  },
+  {
+    slug: "detailed",
+    label: "Detailed",
+    promptTag: "highly detailed with fine line work, intricate patterns, decorative borders",
+    complexity: "adults",
+  },
+  {
+    slug: "kawaii",
+    label: "Kawaii",
+    promptTag: "Japanese kawaii style, pastel influences, round squishy shapes, sparkles",
+    complexity: "kids",
+  },
+  {
+    slug: "easy",
+    label: "Easy",
+    promptTag: "thick bold outlines, very easy shapes, no tiny details",
+    complexity: "kids",
+  },
+];
+
+/* ============================================================
+ * 目标受众 (4 档)
+ * ============================================================ */
 
 export const AUDIENCES: Audience[] = [
   {
     slug: "for-toddlers",
     label: "for Toddlers",
+    promptTag: "extra thick bold outlines, very large simple shapes, large easy-to-color areas",
     complexity: "kids",
-    promptTag: "extra thick bold outlines, simple shapes, large easy-to-color areas",
+  },
+  {
+    slug: "for-preschoolers",
+    label: "for Preschoolers",
+    promptTag: "thick clean outlines, simple cartoon shapes, fun and playful details",
+    complexity: "kids",
   },
   {
     slug: "for-kids",
     label: "for Kids",
+    promptTag: "clean outlines, fun cartoon details, medium line weight, engaging compositions",
     complexity: "kids",
-    promptTag: "clean outlines, fun cartoon details, medium line weight",
   },
   {
     slug: "for-adults",
     label: "for Adults",
+    promptTag: "intricate detailed line art, fine precise outlines, decorative patterns, stress-relieving design",
     complexity: "adults",
-    promptTag: "intricate detailed line art, fine precise outlines, decorative patterns",
   },
 ];
 
 /* ============================================================
- * 核心主题库 —— 覆盖北美高搜索意图
+ * 主体库 (100+ 高频美式搜索词)
  * ============================================================ */
 
-export const THEMES: ColoringTheme[] = [
-  // ---------- 节日（北美 Top 5 大节日） ----------
-  {
-    slug: "thanksgiving-turkey",
-    category: "holidays",
-    prompt: "a happy cartoon turkey wearing a pilgrim hat, surrounded by fall leaves and pumpkins",
-    title: "Thanksgiving Turkey",
-    description: "A cheerful Thanksgiving turkey coloring page with pilgrim hat and autumn decorations.",
-    seedBase: 1001,
-  },
-  {
-    slug: "halloween-spooky-pumpkin",
-    category: "holidays",
-    prompt: "a spooky jack-o-lantern pumpkin with a mischievous grin, bats and haunted trees in the background",
-    title: "Halloween Spooky Pumpkin",
-    description: "A fun spooky jack-o-lantern coloring page perfect for Halloween parties and classroom activities.",
-    seedBase: 1002,
-  },
-  {
-    slug: "fourth-of-july-fireworks",
-    category: "holidays",
-    prompt: "a patriotic bald eagle with American flag, fireworks exploding in the night sky, Statue of Liberty silhouette",
-    title: "4th of July Fireworks",
-    description: "Celebrate Independence Day with this patriotic eagle, flag, and fireworks coloring sheet.",
-    seedBase: 1003,
-  },
-  {
-    slug: "christmas-santa",
-    category: "holidays",
-    prompt: "Santa Claus in his red suit carrying a sack of presents, reindeer and snowy Christmas tree in the background",
-    title: "Christmas Santa",
-    description: "Santa Claus with gift sack, reindeer, and Christmas tree — a classic holiday coloring page.",
-    seedBase: 1004,
-  },
-  {
-    slug: "easter-bunny",
-    category: "holidays",
-    prompt: "a cute Easter bunny holding a basket of decorated eggs, spring flowers and grass",
-    title: "Easter Bunny",
-    description: "A fluffy Easter bunny with decorated eggs and spring flowers coloring sheet.",
-    seedBase: 1005,
-  },
-  {
-    slug: "valentines-heart",
-    category: "holidays",
-    prompt: "a big heart-shaped box of chocolates, rose bouquet and Cupid with a bow",
-    title: "Valentine's Heart",
-    description: "Romantic Valentine coloring page with heart, Cupid, roses and chocolate.",
-    seedBase: 1006,
-  },
-  {
-    slug: "mardi-gras-mask",
-    category: "holidays",
-    prompt: "an ornate Mardi Gras mask with feathers and beads, purple green and gold festive decorations",
-    title: "Mardi Gras Mask",
-    description: "An ornate Mardi Gras mask coloring page with feathers and festive details.",
-    seedBase: 1007,
-  },
-  {
-    slug: "st-patricks-leprechaun",
-    category: "holidays",
-    prompt: "a tiny leprechaun with a red beard and green suit, holding a pot of gold at the end of a rainbow",
-    title: "St. Patrick's Leprechaun",
-    description: "A lucky leprechaun with pot of gold and rainbow — perfect for St. Patrick's Day.",
-    seedBase: 1008,
-  },
+export const SUBJECTS: Subject[] = [
+  // ==================== 动物 (22) ====================
+  { slug: "cat", title: "Cat", prompt: "a charming domestic cat sitting, whiskers, tail curled", description: "A charming cat coloring page with clear outlines.", category: "animals" },
+  { slug: "dog", title: "Dog", prompt: "a happy dog wagging its tail, floppy ears, collar with tag", description: "A friendly dog coloring page for animal lovers.", category: "animals" },
+  { slug: "puppy", title: "Puppy", prompt: "an adorable puppy with soft fluffy fur, floppy ears, tongue out", description: "An ultra-cute puppy coloring page.", category: "animals" },
+  { slug: "kitten", title: "Kitten", prompt: "a tiny playful kitten with soft eyes, sitting on a cushion", description: "A sweet little kitten coloring page.", category: "animals" },
+  { slug: "dinosaur", title: "Dinosaur", prompt: "a friendly prehistoric dinosaur in a fern forest", description: "A fun dinosaur coloring page for dino lovers.", category: "animals" },
+  { slug: "t-rex", title: "T-Rex Dinosaur", prompt: "a T-Rex dinosaur with short arms, big teeth, roaring", description: "A mighty T-Rex dinosaur coloring page.", category: "animals" },
+  { slug: "lion", title: "Lion", prompt: "a majestic lion with a full mane sitting proudly on a rock", description: "A noble lion king coloring page.", category: "animals" },
+  { slug: "tiger", title: "Tiger", prompt: "a fierce tiger with stripe patterns, jungle background", description: "A powerful tiger coloring page.", category: "animals" },
+  { slug: "elephant", title: "Elephant", prompt: "a gentle African elephant with large ears and trunk", description: "A giant elephant coloring page.", category: "animals" },
+  { slug: "giraffe", title: "Giraffe", prompt: "a tall giraffe with spotted coat reaching for leaves", description: "A tall spotted giraffe coloring page.", category: "animals" },
+  { slug: "monkey", title: "Monkey", prompt: "a playful monkey swinging from tree branches, bananas nearby", description: "A silly monkey coloring page.", category: "animals" },
+  { slug: "panda", title: "Panda Bear", prompt: "a cute panda eating bamboo, black and white fur", description: "An adorable panda bear coloring page.", category: "animals" },
+  { slug: "koala", title: "Koala", prompt: "a sleepy koala clinging to an eucalyptus tree", description: "A cute koala coloring page.", category: "animals" },
+  { slug: "dolphin", title: "Dolphin", prompt: "a smiling dolphin jumping through ocean waves", description: "A playful dolphin coloring page.", category: "animals" },
+  { slug: "shark", title: "Shark", prompt: "a great white shark swimming with teeth exposed, underwater", description: "A powerful shark coloring page.", category: "animals" },
+  { slug: "whale", title: "Whale", prompt: "a giant humpback whale with tail flukes, ocean bubbles", description: "A gentle whale coloring page.", category: "animals" },
+  { slug: "sea-turtle", title: "Sea Turtle", prompt: "a sea turtle with detailed patterned shell, underwater coral", description: "A graceful sea turtle coloring page.", category: "animals" },
+  { slug: "butterfly", title: "Butterfly", prompt: "a colorful butterfly with detailed wing patterns on a flower", description: "A beautiful butterfly coloring page.", category: "animals" },
+  { slug: "bee", title: "Honey Bee", prompt: "a bee with stripes and wings, flower and honeycomb nearby", description: "A busy honey bee coloring page.", category: "animals" },
+  { slug: "fox", title: "Fox", prompt: "a clever red fox with bushy tail in autumn woods", description: "A sly red fox coloring page.", category: "animals" },
+  { slug: "bear", title: "Bear", prompt: "a friendly brown bear with honey pot in forest", description: "A cuddly bear coloring page.", category: "animals" },
+  { slug: "rabbit", title: "Rabbit", prompt: "a fluffy rabbit with long ears holding a carrot", description: "A cute rabbit coloring page.", category: "animals" },
+  { slug: "farm-animals", title: "Farm Animals", prompt: "a group of farm animals: cow, pig, chicken, sheep, horse, barn background", description: "A cheerful farm animals coloring page.", category: "animals" },
 
-  // ---------- 流行文化 / 儿童最爱 ----------
-  {
-    slug: "cute-baby-yoda-style",
-    category: "cartoons",
-    prompt: "a cute big-eared green baby alien character with a robe, holding a tiny silver ball",
-    title: "Cute Baby Alien",
-    description: "An adorable baby alien character inspired by a famous galaxy far far away.",
-    seedBase: 2001,
-  },
-  {
-    slug: "friendly-t-rex-dinosaur",
-    category: "cartoons",
-    prompt: "a friendly smiling T-Rex dinosaur wearing a hat, surrounded by ferns and prehistoric plants",
-    title: "Friendly T-Rex Dinosaur",
-    description: "A cheerful T-Rex dinosaur coloring page — no teeth, just smiles!",
-    seedBase: 2002,
-  },
-  {
-    slug: "magical-unicorn-princess",
-    category: "cartoons",
-    prompt: "a beautiful unicorn with a flowing mane of stars and sparkles, standing in a magical rainbow forest",
-    title: "Magical Unicorn Princess",
-    description: "A majestic unicorn princess with starry mane in an enchanted forest setting.",
-    seedBase: 2003,
-  },
-  {
-    slug: "astronaut-pizza-space",
-    category: "cartoons",
-    prompt: "a silly astronaut floating in space holding a giant pizza slice, planets and a crescent moon in background",
-    title: "Astronaut Pizza Space",
-    description: "A fun astronaut floating with pizza among the planets and stars.",
-    seedBase: 2004,
-  },
-  {
-    slug: "monster-truck-jump",
-    category: "cartoons",
-    prompt: "a big monster truck with oversized wheels jumping over a pile of cars, ramps and crowd silhouette",
-    title: "Monster Truck Jump",
-    description: "An exciting monster truck mid-air jump coloring page with spectators.",
-    seedBase: 2005,
-  },
-  {
-    slug: "disney-style-castle",
-    category: "fantasy",
-    prompt: "a fairy tale castle with tall towers and flags, a princess waving from the balcony, swans in the moat",
-    title: "Fairy Tale Castle",
-    description: "A magical fairy tale castle with princess and swans in the moat.",
-    seedBase: 2006,
-  },
-  {
-    slug: "cute-puppy-dog",
-    category: "animals",
-    prompt: "an adorable puppy dog with floppy ears sitting on a rug, wagging tail and happy eyes",
-    title: "Cute Puppy Dog",
-    description: "A sweet puppy dog coloring page — perfect for little animal lovers.",
-    seedBase: 2007,
-  },
-  {
-    slug: "fluffy-kitten",
-    category: "animals",
-    prompt: "a fluffy kitten playing with a ball of yarn, on top of a cushion with paw prints around",
-    title: "Fluffy Kitten",
-    description: "An ultra-cute kitten playing with yarn — cat lovers will adore this one.",
-    seedBase: 2008,
-  },
+  // ==================== 节日 (13) ====================
+  { slug: "halloween-pumpkin", title: "Halloween Pumpkin", prompt: "a spooky jack-o-lantern pumpkin with mischievous grin, bats and haunted trees", description: "A fun Halloween pumpkin coloring page.", category: "holidays" },
+  { slug: "halloween-ghost", title: "Halloween Ghost", prompt: "a friendly cartoon ghost with sheets, haunted house background", description: "A cute not-scary ghost coloring page for Halloween.", category: "holidays" },
+  { slug: "halloween-witch", title: "Halloween Witch", prompt: "a witch with pointy hat and broomstick, cauldron with bubbling potion", description: "A classic witch coloring page.", category: "holidays" },
+  { slug: "thanksgiving-turkey", title: "Thanksgiving Turkey", prompt: "a cartoon turkey wearing a pilgrim hat, fall leaves and pumpkins", description: "A cheerful Thanksgiving turkey coloring page.", category: "holidays" },
+  { slug: "christmas-santa", title: "Christmas Santa", prompt: "Santa Claus in red suit with sack of presents, reindeer and Christmas tree", description: "A classic Santa Claus coloring page.", category: "holidays" },
+  { slug: "christmas-tree", title: "Christmas Tree", prompt: "a decorated Christmas tree with lights ornaments and star on top, presents underneath", description: "A festive Christmas tree coloring page.", category: "holidays" },
+  { slug: "christmas-reindeer", title: "Christmas Reindeer", prompt: "a flying reindeer with red nose pulling Santa's sleigh, snowy night sky", description: "A joyful Christmas reindeer coloring page.", category: "holidays" },
+  { slug: "easter-bunny", title: "Easter Bunny", prompt: "an Easter bunny with basket of colorful decorated eggs, spring flowers", description: "A fluffy Easter bunny coloring page.", category: "holidays" },
+  { slug: "easter-eggs", title: "Easter Eggs", prompt: "decorated Easter eggs with intricate patterns, grass and flowers around", description: "Decorative Easter eggs coloring page.", category: "holidays" },
+  { slug: "4th-of-july-fireworks", title: "4th of July Fireworks", prompt: "patriotic bald eagle with American flag, fireworks exploding, Statue of Liberty", description: "A patriotic 4th of July coloring page.", category: "holidays" },
+  { slug: "valentines-heart", title: "Valentine's Heart", prompt: "a big heart with cupid, roses, chocolates, love letters", description: "A romantic Valentine's Day coloring page.", category: "holidays" },
+  { slug: "st-patricks-leprechaun", title: "St. Patrick's Leprechaun", prompt: "a tiny leprechaun with red beard and green suit, pot of gold at rainbow end", description: "A lucky leprechaun coloring page.", category: "holidays" },
+  { slug: "birthday-cake", title: "Birthday Cake", prompt: "a multi-layer birthday cake with candles, balloons and presents", description: "A festive birthday cake coloring page.", category: "holidays" },
 
-  // ---------- 动物世界 ----------
-  {
-    slug: "jungle-lion-king",
-    category: "animals",
-    prompt: "a majestic lion king with a full mane, sitting proudly on a rock in the African savanna",
-    title: "Jungle Lion King",
-    description: "A regal lion king sitting on his savanna rock throne.",
-    seedBase: 3001,
-  },
-  {
-    slug: "ocean-whale",
-    category: "animals",
-    prompt: "a gentle giant humpback whale swimming in the ocean, surrounded by small fish and bubbles",
-    title: "Ocean Whale",
-    description: "A beautiful humpback whale with fish friends — under the sea adventure.",
-    seedBase: 3002,
-  },
-  {
-    slug: "forest-fox",
-    category: "animals",
-    prompt: "a sly red fox with a bushy tail, standing in an autumn forest with fallen leaves and mushrooms",
-    title: "Forest Fox",
-    description: "A clever red fox exploring an autumn forest full of leaves and mushrooms.",
-    seedBase: 3003,
-  },
-  {
-    slug: "butterfly-garden",
-    category: "animals",
-    prompt: "a monarch butterfly with detailed wing patterns, hovering over a flower garden with tulips and daisies",
-    title: "Butterfly Garden",
-    description: "A beautifully detailed butterfly in a flower garden — great for both kids and adults.",
-    seedBase: 3004,
-  },
-  {
-    slug: "farm-horse",
-    category: "animals",
-    prompt: "a brown horse with a white mane, standing in front of a red barn with hay bales",
-    title: "Farm Horse",
-    description: "A friendly farm horse in front of a classic red barn.",
-    seedBase: 3005,
-  },
-  {
-    slug: "polar-bear-igloo",
-    category: "animals",
-    prompt: "a polar bear with its cub standing next to an igloo, northern lights (aurora) dancing in the sky",
-    title: "Polar Bear Igloo",
-    description: "A polar bear family with igloo and aurora borealis — cold and cozy!",
-    seedBase: 3006,
-  },
-  {
-    slug: "underwater-turtle",
-    category: "animals",
-    prompt: "a sea turtle with a detailed shell swimming among coral reef and tropical fish",
-    title: "Underwater Sea Turtle",
-    description: "A graceful sea turtle exploring a colorful coral reef.",
-    seedBase: 3007,
-  },
-  {
-    slug: "squirrel-acorn",
-    category: "animals",
-    prompt: "a cheerful squirrel holding a big acorn, sitting on an oak tree branch with leaves",
-    title: "Squirrel with Acorn",
-    description: "A happy squirrel gathering acorns for winter.",
-    seedBase: 3008,
-  },
+  // ==================== 交通与现代 (16) ====================
+  { slug: "sports-car", title: "Sports Car", prompt: "a sleek red sports car with racing stripes, city street background", description: "A cool sports car coloring page.", category: "vehicles" },
+  { slug: "monster-truck", title: "Monster Truck", prompt: "a monster truck with huge oversized wheels, jumping over cars", description: "An exciting monster truck coloring page.", category: "vehicles" },
+  { slug: "police-car", title: "Police Car", prompt: "a friendly cartoon police car with flashing sirens, smile on front", description: "A safe friendly police car coloring page.", category: "vehicles" },
+  { slug: "fire-truck", title: "Fire Truck", prompt: "a big red fire truck with extendable ladder, firefighter waving", description: "A heroic fire truck coloring page.", category: "vehicles" },
+  { slug: "ambulance", title: "Ambulance", prompt: "a friendly ambulance with flashing lights, community helper scene", description: "A helpful ambulance coloring page.", category: "vehicles" },
+  { slug: "school-bus", title: "School Bus", prompt: "a bright yellow school bus full of smiling kids, school building behind", description: "The iconic yellow school bus coloring page.", category: "vehicles" },
+  { slug: "airplane", title: "Airplane", prompt: "a commercial jet airplane flying through fluffy white clouds, blue sky", description: "A passenger airplane coloring page.", category: "vehicles" },
+  { slug: "rocket", title: "Rocket Ship", prompt: "a cartoon rocket ship launching into space, flames and smoke", description: "A fun rocket ship coloring page.", category: "vehicles" },
+  { slug: "space-station", title: "Space Station", prompt: "an orbiting space station with solar panels, planet Earth behind", description: "A futuristic space station coloring page.", category: "vehicles" },
+  { slug: "train", title: "Train", prompt: "a colorful cartoon train with several cars, countryside scenery", description: "A cheerful train coloring page.", category: "vehicles" },
+  { slug: "tractor", title: "Farm Tractor", prompt: "a red farm tractor in golden fields, hay bales and farmhouse", description: "A hardworking farm tractor coloring page.", category: "vehicles" },
+  { slug: "bicycle", title: "Bicycle", prompt: "a child's bicycle with training wheels and balloon, driveway scene", description: "A kid's bicycle coloring page.", category: "vehicles" },
+  { slug: "boat", title: "Sailboat", prompt: "a sailboat with colorful sails on calm ocean waves", description: "A peaceful sailboat coloring page.", category: "vehicles" },
+  { slug: "submarine", title: "Submarine", prompt: "a cartoon submarine underwater with fish swimming by, periscope up", description: "A fun submarine coloring page.", category: "vehicles" },
+  { slug: "dump-truck", title: "Dump Truck", prompt: "a yellow construction dump truck with gravel, construction site", description: "A construction dump truck coloring page.", category: "vehicles" },
+  { slug: "helicopter", title: "Helicopter", prompt: "a helicopter with spinning rotor blades, flying over mountains", description: "A helicopter coloring page.", category: "vehicles" },
 
-  // ---------- 自然 / 风景 ----------
-  {
-    slug: "mountain-landscape",
-    category: "nature",
-    prompt: "a majestic mountain landscape with snow-capped peaks, pine forests, a winding river and sun",
-    title: "Mountain Landscape",
-    description: "A scenic mountain landscape with snow peaks, pines and a river.",
-    seedBase: 4001,
-  },
-  {
-    slug: "sunset-beach",
-    category: "nature",
-    prompt: "a tranquil beach at sunset with palm trees, gentle waves, seashells on the sand",
-    title: "Sunset Beach",
-    description: "A peaceful beach sunset with palm trees and seashells.",
-    seedBase: 4002,
-  },
-  {
-    slug: "cherry-blossom-tree",
-    category: "nature",
-    prompt: "a beautiful cherry blossom tree full of flowers, petals falling, a park bench underneath",
-    title: "Cherry Blossom Tree",
-    description: "A stunning cherry blossom tree with petals falling in a peaceful park.",
-    seedBase: 4003,
-  },
-  {
-    slug: "camping-adventure",
-    category: "nature",
-    prompt: "a cozy tent pitched in the woods, campfire with flames, backpack and stars above",
-    title: "Camping Adventure",
-    description: "A fun camping scene with tent, campfire and starry sky.",
-    seedBase: 4004,
-  },
-  {
-    slug: "rainforest-parrot",
-    category: "nature",
-    prompt: "a colorful macaw parrot perched on a tropical tree branch, jungle leaves and flowers around",
-    title: "Rainforest Parrot",
-    description: "A vibrant tropical parrot in the lush rainforest.",
-    seedBase: 4005,
-  },
-  {
-    slug: "desert-cactus",
-    category: "nature",
-    prompt: "a tall saguaro cactus with flowers, desert landscape with mountains, roadrunner bird",
-    title: "Desert Cactus",
-    description: "An Arizona desert scene with saguaro cactus and roadrunner.",
-    seedBase: 4006,
-  },
+  // ==================== 奇幻与角色 (16) ====================
+  { slug: "princess", title: "Princess", prompt: "a beautiful princess in flowing gown, crown on head, castle background", description: "An elegant princess coloring page.", category: "fantasy" },
+  { slug: "mermaid", title: "Mermaid", prompt: "a mermaid with flowing hair and fish tail, surrounded by fish and seashells", description: "A graceful mermaid coloring page.", category: "fantasy" },
+  { slug: "fairy", title: "Fairy", prompt: "a tiny winged fairy sitting on a mushroom cap, magical flowers", description: "An enchanted fairy coloring page.", category: "fantasy" },
+  { slug: "unicorn", title: "Unicorn", prompt: "a magical unicorn with spiral horn, starry mane, rainbow forest", description: "A magical unicorn coloring page.", category: "fantasy" },
+  { slug: "dragon", title: "Fantasy Dragon", prompt: "a majestic dragon with spread wings, mountain lair, smoke from nostrils", description: "A powerful fantasy dragon coloring page.", category: "fantasy" },
+  { slug: "superhero", title: "Superhero", prompt: "a brave superhero in cape and mask, standing tall on city rooftop", description: "An action superhero coloring page.", category: "fantasy" },
+  { slug: "robot", title: "Robot", prompt: "a friendly cartoon robot with antenna, square head, winking eye", description: "A cute robot coloring page.", category: "fantasy" },
+  { slug: "astronaut", title: "Astronaut", prompt: "an astronaut in spacesuit floating in space, planets and stars around", description: "A space explorer astronaut coloring page.", category: "fantasy" },
+  { slug: "pirate", title: "Pirate", prompt: "a pirate captain with eye patch, hat with skull and crossbones, treasure chest", description: "A swashbuckling pirate coloring page.", category: "fantasy" },
+  { slug: "knight", title: "Knight", prompt: "a brave knight in shining armor with sword and shield, castle behind", description: "A noble knight coloring page.", category: "fantasy" },
+  { slug: "wizard", title: "Wizard", prompt: "a wizard with long beard and pointy hat, glowing wand, mystical castle", description: "A wise wizard coloring page.", category: "fantasy" },
+  { slug: "pegasus", title: "Pegasus", prompt: "a winged pegasus horse flying through clouds, stars twinkling", description: "A flying pegasus coloring page.", category: "fantasy" },
+  { slug: "anime-girl", title: "Anime Girl", prompt: "an anime-style girl with big eyes, colorful hair, cute expression", description: "A trendy anime girl coloring page.", category: "fantasy" },
+  { slug: "fairy-castle", title: "Fairy Castle", prompt: "a fairy tale castle with tall towers and flags, princess on balcony", description: "A magical fairy castle coloring page.", category: "fantasy" },
+  { slug: "leprechaun", title: "Leprechaun", prompt: "a tiny Irish leprechaun with green suit and red beard, pot of gold", description: "A lucky leprechaun coloring page.", category: "fantasy" },
+  { slug: "gnome", title: "Garden Gnome", prompt: "a jolly garden gnome with red hat and white beard, mushrooms nearby", description: "A whimsical garden gnome coloring page.", category: "fantasy" },
 
-  // ---------- 交通工具 ----------
-  {
-    slug: "police-car",
-    category: "vehicles",
-    prompt: "a friendly cartoon police car with smiling face, sirens flashing, neighborhood background",
-    title: "Police Car",
-    description: "A cheerful police car coloring page — safe and friendly.",
-    seedBase: 5001,
-  },
-  {
-    slug: "fire-truck",
-    category: "vehicles",
-    prompt: "a big red fire truck with extendable ladder, firefighter waving, fire station in background",
-    title: "Fire Truck",
-    description: "A classic red fire truck with firefighter hero — community helper series.",
-    seedBase: 5002,
-  },
-  {
-    slug: "school-bus",
-    category: "vehicles",
-    prompt: "a bright yellow school bus full of smiling kids, school building and trees behind",
-    title: "School Bus",
-    description: "The iconic yellow school bus heading to school with happy kids.",
-    seedBase: 5003,
-  },
-  {
-    slug: "train-steam-engine",
-    category: "vehicles",
-    prompt: "an old-fashioned steam train with smoke, crossing a bridge over a river, countryside",
-    title: "Steam Engine Train",
-    description: "A classic steam train chugging across a countryside bridge.",
-    seedBase: 5004,
-  },
-  {
-    slug: "airplane-clouds",
-    category: "vehicles",
-    prompt: "a commercial jet airplane flying through fluffy clouds, sun and birds around",
-    title: "Airplane in Clouds",
-    description: "A passenger jet cruising through soft cloud formations.",
-    seedBase: 5005,
-  },
-  {
-    slug: "bicycle-kids",
-    category: "vehicles",
-    prompt: "a child's bicycle with training wheels, balloon tied to handlebar, driveway scene",
-    title: "Kid's Bicycle",
-    description: "A cute kid's bicycle with training wheels — learning to ride!",
-    seedBase: 5006,
-  },
-  {
-    slug: "spaceship-rocket",
-    category: "vehicles",
-    prompt: "a cartoon rocket ship launching into space, flames and smoke, planets and stars",
-    title: "Spaceship Rocket",
-    description: "A playful cartoon rocket blasting off into the starry sky.",
-    seedBase: 5007,
-  },
-  {
-    slug: "tractor-farm",
-    category: "vehicles",
-    prompt: "a red farm tractor working in a field, hay bales and farmhouse in distance",
-    title: "Farm Tractor",
-    description: "A hardworking farm tractor in the golden fields.",
-    seedBase: 5008,
-  },
+  // ==================== 自然与风景 (12) ====================
+  { slug: "mountain", title: "Mountain Landscape", prompt: "snow-capped mountains, pine forests, winding river, sun shining", description: "A scenic mountain landscape coloring page.", category: "nature" },
+  { slug: "beach", title: "Sunset Beach", prompt: "a tranquil beach at sunset, palm trees, gentle waves, seashells", description: "A peaceful beach sunset coloring page.", category: "nature" },
+  { slug: "forest", title: "Forest Scene", prompt: "a dense forest with tall trees, sunlight through leaves, mushrooms on ground", description: "A magical forest coloring page.", category: "nature" },
+  { slug: "rainbow", title: "Rainbow", prompt: "a beautiful rainbow stretching across the sky, clouds, sun at end", description: "A colorful rainbow coloring page.", category: "nature" },
+  { slug: "flowers", title: "Flower Bouquet", prompt: "a bouquet of mixed flowers: roses, tulips, daisies, lilies, in a vase", description: "A beautiful flower bouquet coloring page.", category: "nature" },
+  { slug: "camping", title: "Camping Scene", prompt: "a tent in the woods, campfire with flames, backpack, starry sky", description: "A fun camping adventure coloring page.", category: "nature" },
+  { slug: "desert", title: "Desert Landscape", prompt: "saguaro cactus, desert mountains, roadrunner bird, sunset sky", description: "A desert landscape coloring page.", category: "nature" },
+  { slug: "cherry-blossom", title: "Cherry Blossom", prompt: "a cherry blossom tree full of pink flowers, petals falling, park bench", description: "A stunning cherry blossom coloring page.", category: "nature" },
+  { slug: "jungle", title: "Jungle Scene", prompt: "a lush jungle with tropical plants, vines, waterfall, monkeys in trees", description: "A wild jungle coloring page.", category: "nature" },
+  { slug: "ocean-life", title: "Ocean Life", prompt: "colorful coral reef, tropical fish, starfish, jellyfish, underwater", description: "An underwater ocean life coloring page.", category: "nature" },
+  { slug: "volcano", title: "Volcano", prompt: "a volcano erupting with lava, smoke and ash, island with palm trees", description: "A dramatic volcano coloring page.", category: "nature" },
+  { slug: "aurora-borealis", title: "Aurora Borealis", prompt: "northern lights dancing in the night sky, snowy landscape below, reindeer", description: "A beautiful aurora borealis coloring page.", category: "nature" },
 
-  // ---------- 幻想 / 魔法 ----------
-  {
-    slug: "mermaid-underwater",
-    category: "fantasy",
-    prompt: "a beautiful mermaid with flowing hair sitting on a rock, surrounded by fish, shells and seahorses",
-    title: "Mermaid Underwater",
-    description: "A graceful mermaid with fish friends in an underwater kingdom.",
-    seedBase: 6001,
-  },
-  {
-    slug: "dragon-fantasy",
-    category: "fantasy",
-    prompt: "a magnificent fantasy dragon with spread wings, breathing gentle smoke, mountain lair",
-    title: "Fantasy Dragon",
-    description: "A majestic fantasy dragon guarding its mountain lair.",
-    seedBase: 6002,
-  },
-  {
-    slug: "fairy-garden",
-    category: "fantasy",
-    prompt: "a tiny winged fairy sitting on a mushroom cap, magical flowers, dewdrops and butterflies",
-    title: "Fairy Garden",
-    description: "An enchanted fairy garden with mushrooms, flowers and sparkles.",
-    seedBase: 6003,
-  },
-  {
-    slug: "wizard-castle",
-    category: "fantasy",
-    prompt: "a wizard with a long beard and pointy hat, holding a glowing wand, mystical castle behind",
-    title: "Wizard and Castle",
-    description: "A wise wizard casting magic spells by his ancient castle.",
-    seedBase: 6004,
-  },
-  {
-    slug: "pegasus-flying",
-    category: "fantasy",
-    prompt: "a winged pegasus horse flying through clouds, stars twinkling, rainbow trail",
-    title: "Flying Pegasus",
-    description: "A magical pegasus with wings soaring through starry clouds.",
-    seedBase: 6005,
-  },
-  {
-    slug: "magical-bookshelf",
-    category: "fantasy",
-    prompt: "an enchanted bookshelf with floating books, glowing candles, a cat sleeping on top",
-    title: "Magical Bookshelf",
-    description: "A cozy magical bookshelf with floating books and candles.",
-    seedBase: 6006,
-  },
+  // ==================== 食物与甜点 (10) ====================
+  { slug: "ice-cream", title: "Ice Cream", prompt: "a giant ice cream sundae with multiple scoops, whipped cream, cherry, sprinkles", description: "A delicious ice cream sundae coloring page.", category: "food" },
+  { slug: "pizza", title: "Pizza", prompt: "a large pizza with pepperoni, cheese, mushrooms, olives, a slice pulled away", description: "A mouth-watering pizza coloring page.", category: "food" },
+  { slug: "donut", title: "Donut", prompt: "a cute donut with pink frosting and colorful sprinkles, coffee cup next to it", description: "A sweet donut coloring page.", category: "food" },
+  { slug: "cupcake", title: "Cupcake", prompt: "a fancy cupcake with swirled frosting, sprinkles, cherry on top, cupcake wrapper", description: "A delightful cupcake coloring page.", category: "food" },
+  { slug: "hamburger", title: "Hamburger", prompt: "a juicy hamburger with layers: bun, patty, cheese, lettuce, tomato, onion", description: "A tasty hamburger coloring page.", category: "food" },
+  { slug: "hot-dog", title: "Hot Dog", prompt: "a hot dog in a bun with mustard and ketchup, relish and onions", description: "A classic hot dog coloring page.", category: "food" },
+  { slug: "fruit-basket", title: "Fruit Basket", prompt: "a basket full of fresh fruits: apples, oranges, bananas, grapes, strawberries", description: "A healthy fruit basket coloring page.", category: "food" },
+  { slug: "cake-slice", title: "Cake Slice", prompt: "a slice of layered cake with frosting drips, plate and fork, flowers decoration", description: "A fancy cake slice coloring page.", category: "food" },
+  { slug: "candy", title: "Candy Assortment", prompt: "various candies: lollipops, chocolates, hard candies, wrapped treats", description: "A sweet candy assortment coloring page.", category: "food" },
+  { slug: "smoothie", title: "Smoothie Drink", prompt: "a tall smoothie glass with fruit, straw, umbrella, tropical style", description: "A refreshing smoothie coloring page.", category: "food" },
 
-  // ---------- 教育 / 字母数字 ----------
-  {
-    slug: "alphabet-animals",
-    category: "education",
-    prompt: "ABC letters with cartoon animals: A for Apple, B for Bear, C for Cat, D for Dog",
-    title: "Alphabet Animals",
-    description: "Learn ABC with cute animal friends — preschool educational coloring.",
-    seedBase: 7001,
-  },
-  {
-    slug: "numbers-train",
-    category: "education",
-    prompt: "a number train with cars labeled 1 through 10, each carrying small objects to count",
-    title: "Numbers Train",
-    description: "Count from 1 to 10 with this cheerful number train.",
-    seedBase: 7002,
-  },
-  {
-    slug: "shapes-circle-square",
-    category: "education",
-    prompt: "basic shapes — circle, square, triangle, star, heart — each with a cute face and examples",
-    title: "Shapes Learning",
-    description: "Learn basic shapes with smiling faces — geometry for toddlers.",
-    seedBase: 7003,
-  },
-  {
-    slug: "colors-rainbow",
-    category: "education",
-    prompt: "a rainbow with labeled colors, paint palette, crayon box, sun and clouds",
-    title: "Colors Rainbow",
-    description: "A colorful rainbow with paint palette and crayons — learn colors!",
-    seedBase: 7004,
-  },
-
-  // ---------- 食物 / 甜点 ----------
-  {
-    slug: "ice-cream-sundae",
-    category: "food",
-    prompt: "a giant ice cream sundae with multiple scoops, whipped cream, cherry on top, sprinkles",
-    title: "Ice Cream Sundae",
-    description: "A delicious over-the-top ice cream sundae — yum!",
-    seedBase: 8001,
-  },
-  {
-    slug: "pizza-slice",
-    category: "food",
-    prompt: "a large pizza with pepperoni, cheese, mushrooms, olives, a slice being pulled away",
-    title: "Pizza Slice",
-    description: "A mouth-watering pizza with all your favorite toppings.",
-    seedBase: 8002,
-  },
-  {
-    slug: "birthday-cake",
-    category: "food",
-    prompt: "a three-layer birthday cake with candles, balloons and presents around it",
-    title: "Birthday Cake",
-    description: "A festive three-layer birthday cake with glowing candles and balloons.",
-    seedBase: 8003,
-  },
-  {
-    slug: "donut-sprinkle",
-    category: "food",
-    prompt: "a cute donut with pink frosting and colorful sprinkles, coffee cup next to it",
-    title: "Donut with Sprinkles",
-    description: "A sweet donut with frosting and sprinkles — bakery fun!",
-    seedBase: 8004,
-  },
-  {
-    slug: "apple-orange-fruit",
-    category: "food",
-    prompt: "a basket of fresh fruits — apples, oranges, bananas, grapes, strawberries",
-    title: "Fruit Basket",
-    description: "A healthy fruit basket full of colorful goodies.",
-    seedBase: 8005,
-  },
+  // ==================== 教育 (5) ====================
+  { slug: "alphabet", title: "Alphabet Letters", prompt: "ABC letters with cute cartoon animals: A for Apple, B for Bear, C for Cat", description: "Educational alphabet coloring page.", category: "education" },
+  { slug: "numbers", title: "Numbers", prompt: "numbers 1 through 10 with corresponding objects to count, cheerful style", description: "Counting numbers coloring page.", category: "education" },
+  { slug: "shapes", title: "Basic Shapes", prompt: "basic geometric shapes: circle, square, triangle, star, heart, pentagon", description: "Shapes learning coloring page.", category: "education" },
+  { slug: "colors", title: "Rainbow Colors", prompt: "a rainbow, paint palette, crayon box, labeled colors, sun and clouds", description: "Learn colors with rainbow coloring page.", category: "education" },
+  { slug: "math-symbols", title: "Math Symbols", prompt: "math symbols: plus, minus, multiply, divide, equals with cute cartoon faces", description: "Fun math symbols coloring page.", category: "education" },
 ];
+
+/* ============================================================
+ * 兼容旧接口 —— 别名（向后兼容）
+ * ============================================================ */
+
+/** @deprecated 用 SUBJECTS */
+export const THEMES = SUBJECTS;
+
+/** @deprecated 用 Subject */
+export type ColoringTheme = Subject;
+
+/** @deprecated 用 getPopularSubjectSlugs —— 保留兼容 */
+export const getPopularThemeSlugs = getPopularSubjectSlugs;
+
+/** @deprecated 用 getSubjectsByCategory —— 保留兼容 */
+export const getThemesByCategory = getSubjectsByCategory;
 
 /* ============================================================
  * 组合函数
  * ============================================================ */
 
-/** 单个 pSEO 完整条目（theme + audience 组合） */
 export interface ColoringEntry {
-  /** 最终 slug = "theme-slug-for-audience" */
+  /** 完整 slug = "{style}-{subject}-{audience}" */
   slug: string;
-  /** 基础主题信息 */
-  theme: ColoringTheme;
-  /** 目标受众 */
+  style: Style;
+  subject: Subject;
   audience: Audience;
-  /** 完整 AI prompt */
+  /** 完整 AI prompt（主体 + 风格 + 受众） */
   fullPrompt: string;
-  /** 确定性 seed —— 保证同一 slug 每次生成同一张线稿 */
+  /** 确定性 seed */
   deterministicSeed: number;
-  /** HTML title（SEO 优化版） */
+  /** SEO HTML title */
   htmlTitle: string;
-  /** 人类可读展示标题 */
+  /** 展示标题 */
   displayTitle: string;
-  /** SEO description */
+  /** SEO meta description */
   metaDescription: string;
-  /** 建议文件 slug（不带受众后缀的短 slug） */
+  /** 不带 style/audience 的短 slug */
   shortSlug: string;
 }
 
-/** 将 slug 拆回 theme + audience 组件 */
-export function parseSlug(fullSlug: string): { theme: ColoringTheme; audience: Audience } | null {
-  const lower = fullSlug.toLowerCase();
-
-  // 尝试匹配每个 audience 后缀
-  for (const aud of AUDIENCES) {
-    const suffix = `-${aud.slug}`;
-    if (lower.endsWith(suffix)) {
-      const themeSlug = lower.slice(0, -suffix.length);
-      const theme = THEMES.find((t) => t.slug === themeSlug);
-      if (theme) return { theme, audience: aud };
-    }
-  }
-  return null;
-}
-
-/**
- * 基于 slug 生成确定性 seed（hash 算法）
- * 相同 slug → 相同 seed → Pollinations 返回相同图片
- */
+/** 确定性 seed —— hash 算法（Pollinations 要求 1 ~ 2^31-1） */
 export function slugToDeterministicSeed(slug: string): number {
   let hash = 0;
   for (let i = 0; i < slug.length; i++) {
     hash = (hash * 31 + slug.charCodeAt(i)) | 0;
   }
-  // Pollinations seed 范围: 1 ~ 2^31-1
   return Math.abs(hash) % 2_147_483_646 + 1;
 }
 
-/** 组合一个 theme + audience 为完整条目 */
-export function buildEntry(theme: ColoringTheme, audience: Audience): ColoringEntry {
-  const slug = `${theme.slug}-${audience.slug}`;
-  const deterministicSeed = slugToDeterministicSeed(slug);
-
-  return {
-    slug,
-    theme,
-    audience,
-    fullPrompt: `${theme.prompt}, ${audience.promptTag}`,
-    deterministicSeed,
-    htmlTitle: `Free Printable ${theme.title} Coloring Page ${audience.label} (Instant PDF Download) - wangdadi.xyz`,
-    displayTitle: `${theme.title} Coloring Page ${audience.label}`,
-    metaDescription: `Download free printable ${theme.title} coloring page ${audience.label}. Clean black-and-white line art ready for crayons and markers. 100% free, no sign-up required. Instant PDF download.`,
-    shortSlug: theme.slug,
-  };
-}
-
-/** 获取全量 100+ 条 pSEO slugs */
+/** 三重笛卡尔积：style × subject × audience */
 export function getAllUSColoringSlugs(): string[] {
-  return THEMES.flatMap((theme) =>
-    AUDIENCES.map((aud) => `${theme.slug}-${aud.slug}`)
-  );
+  const slugs: string[] = [];
+  for (const style of STYLES) {
+    for (const subject of SUBJECTS) {
+      for (const audience of AUDIENCES) {
+        slugs.push(`${style.slug}-${subject.slug}-${audience.slug}`);
+      }
+    }
+  }
+  return slugs;
 }
 
 /** 全量条目（带完整数据） */
 export function getAllColoringEntries(): ColoringEntry[] {
-  return THEMES.flatMap((theme) => AUDIENCES.map((aud) => buildEntry(theme, aud)));
+  const entries: ColoringEntry[] = [];
+  for (const style of STYLES) {
+    for (const subject of SUBJECTS) {
+      for (const audience of AUDIENCES) {
+        entries.push(buildEntry(subject, style, audience));
+      }
+    }
+  }
+  return entries;
 }
 
-/** 按类别分组（用于首页推荐流） */
-export function getThemesByCategory(): Record<string, ColoringTheme[]> {
-  const map: Record<string, ColoringTheme[]> = {};
-  for (const t of THEMES) {
-    if (!map[t.category]) map[t.category] = [];
-    map[t.category].push(t);
+/** 构建单个 pSEO 条目 */
+export function buildEntry(
+  subject: Subject,
+  style: Style,
+  audience: Audience
+): ColoringEntry {
+  const slug = `${style.slug}-${subject.slug}-${audience.slug}`;
+  const deterministicSeed = slugToDeterministicSeed(slug);
+  const displayTitle = `${style.label} ${subject.title} Coloring Page ${audience.label}`;
+
+  return {
+    slug,
+    style,
+    subject,
+    audience,
+    fullPrompt: [
+      subject.prompt,
+      style.promptTag,
+      audience.promptTag,
+    ].join(", "),
+    deterministicSeed,
+    htmlTitle: `Free Printable ${displayTitle} (Instant PDF Download) - wangdadi.xyz`,
+    displayTitle,
+    metaDescription: `Download free printable ${displayTitle}. Clean black-and-white line art ready for crayons and markers. 100% free, no sign-up required. Instant PDF download.`,
+    shortSlug: subject.slug,
+  };
+}
+
+/**
+ * 反向解析 slug → { style, subject, audience }
+ * 支持格式：{style}-{subject}-{audience}
+ */
+export function parseSlug(
+  fullSlug: string
+): { style: Style; subject: Subject; audience: Audience } | null {
+  const lower = fullSlug.toLowerCase();
+
+  // 1. 先匹配 audience 后缀
+  for (const audience of AUDIENCES) {
+    const audSuffix = `-${audience.slug}`;
+    if (!lower.endsWith(audSuffix)) continue;
+
+    const rest = lower.slice(0, -audSuffix.length);
+
+    // 2. 再匹配 style 前缀
+    for (const style of STYLES) {
+      const stylePrefix = `${style.slug}-`;
+      if (!rest.startsWith(stylePrefix)) continue;
+
+      const subjectSlug = rest.slice(stylePrefix.length);
+      const subject = SUBJECTS.find((s) => s.slug === subjectSlug);
+      if (subject) return { style, subject, audience };
+    }
+  }
+
+  return null;
+}
+
+/** slug → 人类可读英文标题 */
+export function slugToTitle(slug: string): string {
+  const parsed = parseSlug(slug);
+  if (parsed) return buildEntry(parsed.subject, parsed.style, parsed.audience).displayTitle;
+  return slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/** 按类别分组（用于首页分类展示） */
+export function getSubjectsByCategory(): Record<string, Subject[]> {
+  const map: Record<string, Subject[]> = {};
+  for (const s of SUBJECTS) {
+    if (!map[s.category]) map[s.category] = [];
+    map[s.category].push(s);
   }
   return map;
 }
 
 /**
- * 将 slug 转为地道英文标题
- *   e.g. "cute-baby-yoda-style-for-toddlers" → "Cute Baby Alien Coloring Page for Toddlers"
+ * 首页推荐 slug —— 每个类别取前 N 个，
+ * 默认用 "cute" 风格 + "for-kids" 受众（搜索量最大）
  */
-export function slugToTitle(slug: string): string {
-  const parsed = parseSlug(slug);
-  if (parsed) {
-    return buildEntry(parsed.theme, parsed.audience).displayTitle;
-  }
-  // 兜底：简单 camel-case + title-case
-  return slug
-    .replace(/-/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
-/** 首页推荐用 —— 每个类别的代表 slug 数量 */
-export function getPopularThemeSlugs(limitPerCategory = 3): string[] {
-  const grouped = getThemesByCategory();
+export function getPopularSubjectSlugs(limitPerCategory = 3): string[] {
+  const style = STYLES.find((s) => s.slug === "cute") ?? STYLES[0];
+  const audience = AUDIENCES.find((a) => a.slug === "for-kids") ?? AUDIENCES[0];
+  const grouped = getSubjectsByCategory();
   const slugs: string[] = [];
-  for (const [, themes] of Object.entries(grouped)) {
-    for (let i = 0; i < Math.min(limitPerCategory, themes.length); i++) {
-      // 默认给 for-kids 后缀 —— 最通用
-      slugs.push(`${themes[i].slug}-for-kids`);
+  for (const subjects of Object.values(grouped)) {
+    for (let i = 0; i < Math.min(limitPerCategory, subjects.length); i++) {
+      slugs.push(`${style.slug}-${subjects[i].slug}-${audience.slug}`);
     }
   }
   return slugs;
 }
+
+/** 类别元数据（首页卡片用） */
+export const CATEGORY_META: Record<SubjectCategory, { label: string; emoji: string }> = {
+  holidays: { label: "Holidays", emoji: "🎄" },
+  animals: { label: "Animals", emoji: "🐶" },
+  vehicles: { label: "Vehicles", emoji: "🚗" },
+  fantasy: { label: "Fantasy & Characters", emoji: "🦄" },
+  nature: { label: "Nature & Landscapes", emoji: "🌳" },
+  food: { label: "Food & Sweets", emoji: "🍕" },
+  characters: { label: "Characters", emoji: "⭐" },
+  education: { label: "Educational", emoji: "🔤" },
+};
