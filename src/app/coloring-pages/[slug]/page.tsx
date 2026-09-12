@@ -36,6 +36,9 @@ export function generateStaticParams() {
   return slugs.map((slug) => ({ slug }));
 }
 
+/** 开启动态参数 —— 预渲染列表外的 slug 也能实时解析渲染，不抛 404 */
+export const dynamicParams = true;
+
 /* ============================================================
  * Generate Metadata —— SEO/GEO 优化
  * ============================================================ */
@@ -259,26 +262,26 @@ export default async function ColoringPageDetail(
  * Helpers
  * ============================================================ */
 
-/** 获取图片 —— 直接手写 URL（绕过 buildPollinationsUrl 保证自然语言长句 prompt）
+/** 获取图片 —— 手写 URL，彻底绕过所有公共函数
  *
- * 反写实核心策略：
- *   1. 自然语言完整长句（驯服 Flux 的唯一方法）
- *   2. seed + 999999 砸烂 Pollinations CDN 上所有历史缓存
- *   3. 仅传纯净主体词（如 "cat"），不传 cute/toddlers 等毒药词
+ * 反写实三重保险：
+ *   1. 极短句硬指令 prompt（Flux 对短句优先级更高）
+ *   2. seed + 9999999（彻底砸烂 Pollinations CDN 所有历史缓存）
+ *   3. 仅传纯净主体词（如 "cat"）
  */
 async function fetchImage(
   entry: ColoringEntry,
   pureSubject: string
 ): Promise<{ url: string; finalSeed: number }> {
-  // 工业级反写实自然语言 prompt —— 完整长句
+  // 更短、更硬的工业级指令 —— Flux 对短句优先级高于长句
   const promptText =
-    `A coloring book page for a 3-year-old toddler. A simple 2D cartoon outline of a ${pureSubject}. ` +
-    `Thick black marker lines, completely hollow shapes, plain pure white paper background. ` +
-    `Absolute zero shading, no gray colors, no gradients, no photorealism, no 3D effects, clean blank coloring sheet.`;
+    `children outline drawing of a cartoon ${pureSubject}, uncolored coloring book page, ` +
+    `clean black lineart on pure white background, no shading, no gray, no 3D, no realism, ` +
+    `no hair texture, no fur, no photorealistic`;
 
   const encodedPrompt = encodeURIComponent(promptText);
-  // seed + 999999 彻底砸烂 CDN 上那只写实猫的历史缓存
-  const finalSeed = entry.deterministicSeed + 999999;
+  // seed + 9999999 —— 比之前 +999999 大 10 倍，彻底不可能命中旧缓存
+  const finalSeed = ((entry.deterministicSeed + 9_999_999) % 2_147_483_646) + 1;
   const url =
     `https://image.pollinations.ai/prompt/${encodedPrompt}` +
     `?width=1024&height=1024&model=flux&nologo=true&seed=${finalSeed}`;
