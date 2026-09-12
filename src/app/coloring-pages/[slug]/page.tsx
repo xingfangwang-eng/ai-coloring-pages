@@ -262,29 +262,27 @@ export default async function ColoringPageDetail(
  * Helpers
  * ============================================================ */
 
-/** 获取图片 —— 手写 URL，彻底绕过所有公共函数
+/** 获取图片 —— 极简纯净 prompt + turbo 模型
  *
- * 反写实三重保险：
- *   1. 极短句硬指令 prompt（Flux 对短句优先级更高）
- *   2. seed + 9999999（彻底砸烂 Pollinations CDN 所有历史缓存）
- *   3. 仅传纯净主体词（如 "cat"）
+ * 反写实终极原则：
+ *   1. 严禁出现任何否定词（no X 会激活 X 的权重！Flux/Turbo 都有这个 bug）
+ *   2. 只用正向词堆砌最核心的线稿概念
+ *   3. model=turbo（SDXL-Turbo 简笔画专家）
+ *   4. seed + 9999999 彻底砸烂历史 CDN 缓存
  */
 async function fetchImage(
   entry: ColoringEntry,
   pureSubject: string
 ): Promise<{ url: string; finalSeed: number }> {
-  // 更短、更硬的工业级指令 —— Flux 对短句优先级高于长句
+  // 100% 正向词，无任何否定式
   const promptText =
-    `children outline drawing of a cartoon ${pureSubject}, uncolored coloring book page, ` +
-    `clean black lineart on pure white background, no shading, no gray, no 3D, no realism, ` +
-    `no hair texture, no fur, no photorealistic`;
+    `coloring book page of a ${pureSubject}, black line art outline, simple vector contour, white background`;
 
   const encodedPrompt = encodeURIComponent(promptText);
-  // seed + 9999999 —— 比之前 +999999 大 10 倍，彻底不可能命中旧缓存
   const finalSeed = ((entry.deterministicSeed + 9_999_999) % 2_147_483_646) + 1;
   const url =
     `https://image.pollinations.ai/prompt/${encodedPrompt}` +
-    `?width=1024&height=1024&model=flux&nologo=true&seed=${finalSeed}`;
+    `?width=1024&height=1024&model=turbo&nologo=true&seed=${finalSeed}`;
 
   return { url, finalSeed };
 }

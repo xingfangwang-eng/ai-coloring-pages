@@ -126,21 +126,8 @@ export function ResultPanel({ result, onRetry }: ResultPanelProps) {
           className="aspect-square w-full cursor-zoom-in object-contain"
         />
 
-        {/* 免费用户水印蒙层（45° 半透明重复） */}
-        {result.watermarked && (
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0"
-            style={{
-              backgroundImage:
-                "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='120'><text x='50%' y='50%' fill='%23000' fill-opacity='0.08' font-size='14' font-family='sans-serif' font-weight='600' text-anchor='middle' dominant-baseline='middle' transform='rotate(-25 120 60)'>AI COLOURING PAGES · FREE</text></svg>\")",
-            }}
-          />
-        )}
-
         <div className="pointer-events-none absolute bottom-2 right-2 rounded-md bg-background/80 px-2 py-0.5 text-[11px] font-mono text-muted-foreground backdrop-blur">
-          seed: {result.seed} · 2048×2048 · {ext.toUpperCase()}
-          {result.watermarked && " · Free plan"}
+          seed: {result.seed} · 1024×1024 · {ext.toUpperCase()}
         </div>
       </div>
 

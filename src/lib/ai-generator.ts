@@ -21,20 +21,20 @@ const POLLINATIONS_BASE = "https://image.pollinations.ai/prompt";
 export const DEFAULT_WIDTH = 1024;
 export const DEFAULT_HEIGHT = 1024;
 /** flux = 理解 Disney 2D 卡通 prompt 最准确 */
-const DEFAULT_POLLINATIONS_MODEL = "flux";
+const DEFAULT_POLLINATIONS_MODEL = "turbo";
 
-/** seed 强制偏移量 —— 88888 砸烂 Pollinations 历史 CDN 缓存（含写实猫） */
+/** seed 强制偏移量 —— 88888 砸烂 Pollinations 历史 CDN 缓存 */
 const SEED_CACHE_BUST_OFFSET = 88888;
 
 /**
- * Disney 2D 神级 Prompt —— 全球公认不会出 3D/写实/阴影
- * 触发词序列在训练集中权重极高
+ * 极简纯净 Prompt —— 只用正向词，严禁任何否定式！
  *
- * 严禁出现 clip art / vector / cute 等诱导写实的词
- * 严禁出现 no color / no shading 等否定式（flux/turbo 不认）
+ * 为什么不能用 no X？
+ *   Pollinations 底层的 Flux/Turbo 会把 "no gray" 中的 "gray" 权重拉高！
+ *   这就是灰底大圆球的直接原因。否定词 = 反向激活。
  */
-const DISNEY_LINEART_PROMPT =
-  "disney coloring book page, simple 2d cartoon {{SUBJECT}}, preschool coloring sheet, clean thick black contour lines, hollow empty shapes for crayons, pure white paper background, no gray, no shading, no background, 2d flat lineart";
+const LINEART_PROMPT =
+  "coloring book page of a {{SUBJECT}}, black line art outline, simple vector contour, white background";
 
 /** 构造 Pollinations 的完整 URL
  *
@@ -58,8 +58,8 @@ export function buildPollinationsUrl(params: {
     seed,
   } = params;
 
-  // Disney 2D 神级 prompt —— 替换 {{SUBJECT}} 占位符
-  const finalPrompt = DISNEY_LINEART_PROMPT.replace(/\{\{SUBJECT\}\}/g, pureSubject);
+  // 极简纯净正向 prompt
+  const finalPrompt = LINEART_PROMPT.replace(/\{\{SUBJECT\}\}/g, pureSubject);
   const encoded = encodeURIComponent(finalPrompt);
 
   const usp = new URLSearchParams({
@@ -79,7 +79,7 @@ export function buildPollinationsUrl(params: {
 
 /** 保留兼容 */
 export function wrapLineartPrompt(rawPrompt: string): string {
-  return DISNEY_LINEART_PROMPT.replace(/\{\{SUBJECT\}\}/g, rawPrompt);
+  return LINEART_PROMPT.replace(/\{\{SUBJECT\}\}/g, rawPrompt);
 }
 
 /** 生成随机 seed（Pollinations seed 范围 1 ~ 2^31-1） */
