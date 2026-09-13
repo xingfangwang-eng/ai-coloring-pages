@@ -11,6 +11,13 @@
 
 import { useState } from "react";
 import { Download, FileDown, FileText, Loader2 } from "lucide-react";
+import {
+  getCleanCroppedImageData,
+  computePdfPlacement,
+  paperSizeObj,
+  PAPER_MM,
+  DEFAULT_MARGIN_MM,
+} from "@/lib/pdf-utils";
 
 interface Props {
   imageUrl: string;
@@ -49,8 +56,18 @@ function mimeToJspdfFormat(mime: string): "JPEG" | "PNG" | "WEBP" {
 function extractMime(url: string): string {
   const match = url.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,/);
   if (match) return match[1];
-  // URL 方式默认 png
   return "image/png";
+}
+
+/** 图片加载完成后返回 naturalWidth/naturalHeight */
+function getImageNaturalSize(src: string): Promise<{ w: number; h: number }> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+    img.onerror = () => resolve({ w: 1024, h: 978 }); // fallback（1024 - 4.5% ≈ 978）
+    img.src = src;
+  });
 }
 
 export function PseoClientActions({ imageUrl, displayTitle, seed }: Props) {
@@ -70,33 +87,33 @@ export function PseoClientActions({ imageUrl, displayTitle, seed }: Props) {
   const handleExportPdf = async (size: PaperSize) => {
     setExporting(size);
     try {
+      // 1. 先通过 Canvas 切掉 Pollinations 底部水印（4.5%）
+      const cleanDataUrl = await getCleanCroppedImageData(imageUrl);
+
+      // 2. 获取裁切后的图片自然尺寸（Canvas 加载完才知道）
+      const cleanSize = await getImageNaturalSize(cleanDataUrl);
+
       const { default: jsPDF } = await import("jspdf");
+
+      const paper = PAPER_SIZES[size];
+      const pdfPaperMm =
+        size === "us-letter" ? PAPER_MM.letter : PAPER_MM.a4;
 
       const pdf = new jsPDF({
         orientation: "portrait",
         unit: "mm",
-        format: size === "us-letter" ? [215.9, 279.4] : "a4",
+        format: pdfPaperMm, // [w, h] 数组 —— jsPDF 原生支持
       });
 
-      const paper = PAPER_SIZES[size];
-      const maxW = paper.w - MARGIN_MM * 2;
-      const maxH = paper.h - MARGIN_MM * 2;
-
-      // 计算等比缩放后的居中位置
-      const drawW = maxW;
-      const drawH = maxH;
-      const x = (paper.w - drawW) / 2;
-      const y = (paper.h - drawH) / 2;
-
-      // PDF 直接用 AI 生成的原图 —— Disney 2D prompt 已保证线稿
-      pdf.addImage(
-        imageUrl,
-        "PNG",
-        x,
-        y,
-        drawW,
-        drawH
+      // 3. 等比缩放 + 居中（修复正方形被拉伸变形）
+      const { drawW, drawH, x, y } = computePdfPlacement(
+        paperSizeObj(pdfPaperMm), // { w, h } 形式
+        DEFAULT_MARGIN_MM,
+        cleanSize
       );
+
+      // 4. 用干净（去水印）的图写入 PDF
+      pdf.addImage(cleanDataUrl, "PNG", x, y, drawW, drawH);
 
       const safeTitle = displayTitle.replace(/\s+/g, "-").toLowerCase();
       pdf.save(`${safeTitle}-${paper.filename}.pdf`);

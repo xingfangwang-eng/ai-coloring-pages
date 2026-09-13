@@ -6,16 +6,32 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import type { GenerateApiSuccess } from "@/types";
+import {
+  getCleanCroppedImageData,
+  computePdfPlacement,
+  paperSizeObj,
+  PAPER_MM,
+  DEFAULT_MARGIN_MM,
+} from "@/lib/pdf-utils";
 
 interface ResultPanelProps {
   result: GenerateApiSuccess;
   onRetry: () => void;
 }
 
-/** A4 纸张尺寸（mm）+ 边距 */
-const A4_WIDTH_MM = 210;
-const A4_HEIGHT_MM = 297;
-const A4_MARGIN_MM = 10;
+/**
+ * 图片加载完成后返回 naturalWidth/naturalHeight
+ * 用于等比缩放计算（Canvas 裁切后高度会变，必须动态读取）
+ */
+function getImageNaturalSize(src: string): Promise<{ w: number; h: number }> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+    img.onerror = () => resolve({ w: 1024, h: 978 }); // fallback
+    img.src = src;
+  });
+}
 
 /**
  * 从 data URL 中提取 MIME 类型
@@ -67,35 +83,33 @@ export function ResultPanel({ result, onRetry }: ResultPanelProps) {
     }
   };
 
-  /** Export A4 PDF：动态 import jsPDF，图片居中保持比例 */
+  /** 导出 A4 PDF：先去水印 → 再等比缩放居中 */
   const handleExportPdf = async () => {
     setExporting(true);
     try {
+      // 1. Canvas 物理切掉底部 4.5% 水印
+      const cleanDataUrl = await getCleanCroppedImageData(result.imageUrl);
+
+      // 2. 读取裁切后图片的真实尺寸（不再是 1024×1024 正方形了）
+      const cleanSize = await getImageNaturalSize(cleanDataUrl);
+
       const { default: jsPDF } = await import("jspdf");
 
       const pdf = new jsPDF({
         orientation: "portrait",
         unit: "mm",
-        format: "a4",
+        format: PAPER_MM.a4, // [w, h] 数组 —— jsPDF 原生支持
       });
 
-      const maxW = A4_WIDTH_MM - A4_MARGIN_MM * 2;
-      const maxH = A4_HEIGHT_MM - A4_MARGIN_MM * 2;
-
-      // Pollinations 默认 1024x1024 正方形，保持比例即可
-      const drawW = maxW;
-      const drawH = maxH;
-      const x = (A4_WIDTH_MM - drawW) / 2;
-      const y = (A4_HEIGHT_MM - drawH) / 2;
-
-      pdf.addImage(
-        result.imageUrl,
-        mimeToJspdfFormat(mimeType),
-        x,
-        y,
-        drawW,
-        drawH
+      // 3. 等比缩放 + 居中（fix: 正方形不再被撑成长方形）
+      const { drawW, drawH, x, y } = computePdfPlacement(
+        paperSizeObj(PAPER_MM.a4), // { w, h } 形式
+        DEFAULT_MARGIN_MM,
+        cleanSize
       );
+
+      // 4. 写入干净的 PNG（Canvas 输出一定是 PNG）
+      pdf.addImage(cleanDataUrl, "PNG", x, y, drawW, drawH);
       pdf.save(`coloring-page-${result.seed}-A4.pdf`);
 
       toast.success("A4 PDF exported ✨");
