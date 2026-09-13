@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Download, FileDown, RefreshCw, ZoomIn } from "lucide-react";
+import { Download, FileDown, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import type { GenerateApiSuccess } from "@/types";
-import { exportToPdf } from "@/lib/pdf-utils";
+import { exportToPdf, getCleanCroppedImageData } from "@/lib/pdf-utils";
 
 interface ResultPanelProps {
   result: GenerateApiSuccess;
@@ -38,18 +38,33 @@ export function ResultPanel({ result, onRetry }: ResultPanelProps) {
   const mimeType = parseMimeType(result.imageUrl);
   const ext = mimeToExt(mimeType);
 
-  /** 下载 PNG —— 直接用浏览器原生 <a download> */
-  const handleDownloadImage = () => {
+  /** 下载 PNG —— Canvas 物理去水印后下载，绝不跳转外部 URL */
+  const handleDownloadImage = async () => {
+    setExporting(true);
     try {
-      const a = document.createElement("a");
-      a.href = result.imageUrl;
-      a.download = `coloring-page-${result.seed}.${ext}`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      toast.success("Download started");
+      // 1. Canvas 切掉底部 4.5% Pollinations 水印
+      const { dataUrl } = await getCleanCroppedImageData(result.imageUrl);
+
+      // 2. data URL → Blob → 虚拟 a 标签 → 触发下载
+      const res = await fetch(dataUrl);
+      const blob = await res.blob();
+
+      const url = URL.createObjectURL(blob);
+      try {
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `coloring-page-${result.seed}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } finally {
+        URL.revokeObjectURL(url);
+      }
+      toast.success("Download started (no watermark ✨)");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Download failed. Please try again.");
+      toast.error(err instanceof Error ? err.message : "Download failed");
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -71,10 +86,6 @@ export function ResultPanel({ result, onRetry }: ResultPanelProps) {
     }
   };
 
-  const handleOpenNewTab = () => {
-    window.open(result.imageUrl, "_blank", "noopener");
-  };
-
   return (
     <div className="flex flex-col gap-4">
       {/* 预览图 —— overflow-hidden + scale(1.06) 物理裁切 Pollinations 右下角残留 Logo */}
@@ -82,8 +93,7 @@ export function ResultPanel({ result, onRetry }: ResultPanelProps) {
         <img
           src={result.imageUrl}
           alt={`Coloring page - ${result.prompt}`}
-          onClick={handleOpenNewTab}
-          className="h-full w-full cursor-zoom-in"
+          className="h-full w-full"
           style={{
             objectFit: "cover",
             transform: "scale(1.06)",
@@ -94,9 +104,9 @@ export function ResultPanel({ result, onRetry }: ResultPanelProps) {
 
       {/* 操作按钮栏 */}
       <div className="flex flex-wrap gap-2">
-        <Button onClick={handleDownloadImage} className="gap-2">
+        <Button onClick={handleDownloadImage} disabled={exporting} className="gap-2">
           <Download className="h-4 w-4" />
-          Download {ext.toUpperCase()} <span className="text-[10px] opacity-70">(2048×2048)</span>
+          {exporting ? "Downloading…" : `Download PNG`}
         </Button>
         <Button
           variant="secondary"
@@ -115,10 +125,6 @@ export function ResultPanel({ result, onRetry }: ResultPanelProps) {
               Export A4 PDF <span className="text-[10px] opacity-70">(print-ready)</span>
             </>
           )}
-        </Button>
-        <Button variant="outline" onClick={handleOpenNewTab} className="gap-2">
-          <ZoomIn className="h-4 w-4" />
-          Zoom in
         </Button>
         <Button variant="ghost" onClick={onRetry} className="gap-2">
           <RefreshCw className="h-4 w-4" />
