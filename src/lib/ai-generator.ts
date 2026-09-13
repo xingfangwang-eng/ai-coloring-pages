@@ -49,8 +49,8 @@ const POLLINATIONS_MODEL = "flux";
 
 /** seed 强制偏移量 —— 砸烂 Pollinations 历史 CDN 缓存
  * 每次改 MAGIC_PROMPT 必须同步改这个偏移量！
- * 当前：123456 —— 砸烂满月/黑夜缓存（之前的 Halloween 月亮是白熊效应反噬） */
-const SEED_CACHE_BUST_OFFSET = 123_456;
+ * 当前：123567 —— 砸烂 3D 灰度南瓜缓存（+111 微调） */
+const SEED_CACHE_BUST_OFFSET = 123_567;
 
 /**
  * Prompt 模板表 —— 双轨制
@@ -143,7 +143,7 @@ export function getSanitizedPromptSubject(input: string): string {
     // 🔥 节日强场景词中性化映射 —— 避开触发夜景/氛围的大词
     // halloween → night/moon/spooky 联想链极强，christmas-reindeer 自带 "snowy night sky"
     const FESTIVE_NEUTRAL_MAP: Record<string, string> = {
-      "halloween-pumpkin": "carved pumpkin",      // 雕刻南瓜灯（去掉 halloween 的 night 联想）
+      "halloween-pumpkin": "2d cartoon jack-o-lantern", // 2D 平面卡通南瓜灯（避开 carved 的 3D 光影）
       "halloween-ghost": "cartoon ghost",          // 卡通幽灵（去掉 spooky/haunted）
       "halloween-witch": "witch character",         // 单体女巫形象（去掉 cauldron/broom 场景）
       "christmas-santa": "santa claus character",   // 单体圣诞老人（去掉 sleigh/reindeer/tree）
@@ -222,7 +222,7 @@ const PROMPT_TEMPLATES: Record<Audience, string> = {
  * 每改一次 Magic Prompt 必须同步改 SEED_CACHE_BUST_OFFSET！
  */
 const MAGIC_PROMPT =
-  "coloring book page of a {{SUBJECT}}, simple black outline, line art, stark white paper background";
+  "coloring book page of a {{SUBJECT}}, 2d flat line drawing, bold clean outlines, pure white paper background, hollow uncolored shapes";
 
 /** 构造 Pollinations 的完整 URL —— 用 Magic Prompt
  *
