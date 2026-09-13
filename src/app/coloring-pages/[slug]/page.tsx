@@ -23,6 +23,7 @@ import {
 } from "@/lib/us-coloring-data";
 import type { ColoringEntry } from "@/lib/us-coloring-data";
 import { PseoClientActions } from "./pseo-client-actions";
+import { buildPollinationsUrl } from "@/lib/ai-generator";
 import LineartImage from "@/components/lineart-image";
 import GeoSchema from "@/components/geo-schema";
 import BlufSummary from "@/components/bluf-summary";
@@ -331,14 +332,15 @@ async function fetchImage(
   entry: ColoringEntry,
   pureSubject: string
 ): Promise<{ url: string; finalSeed: number }> {
-  const promptText =
-    `coloring book page of a ${pureSubject}, black line art outline, white background`;
-
-  const encodedPrompt = encodeURIComponent(promptText);
   const finalSeed = ((entry.deterministicSeed + 9_999_999) % 2_147_483_646) + 1;
-  const url =
-    `https://image.pollinations.ai/prompt/${encodedPrompt}` +
-    `?width=1024&height=1024&model=turbo&nologo=true&seed=${finalSeed}`;
+  // audience.complexity → "kids" | "adults"，决定 prompt 模板
+  const url = buildPollinationsUrl({
+    prompt: pureSubject,
+    audience: entry.audience.complexity as "kids" | "adults",
+    width: 1024,
+    height: 1024,
+    seed: finalSeed,
+  });
 
   return { url, finalSeed };
 }

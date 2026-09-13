@@ -6,10 +6,15 @@
  *   - 支持确定性 seed → 同一 seed + prompt = 同一张图
  *   - 用于：①Studio 工作台实时生成；②pSEO 页面静态产出；③首页实时生成
  *
- * Prompt 规则（用户实测验证 100% 稳定）：
- *   - 统一模板："coloring book page of a ${pureSubject}, black line art outline, white background"
- *   - 严禁任何否定式（no X 会反向激活 X 权重）
- *   - 严禁冗余词堆砌（simple vector contour / no shading 等都去掉）
+ * Prompt 双轨制（用户实测验证 100% 稳定）：
+ *   - for-adults → 精细 Zentangle / Mandala 线稿（纯白底、空心几何花纹）
+ *   - for-kids/toddlers/preschoolers → 粗线条卡通简笔（大块镂空、纯白底）
+ *
+ * Prompt 绝对约束：
+ *   - 主体必须 Isolated（孤立在纯白背景上）
+ *   - 所有内部区域必须 Hollow（空心白底，留给用户填色）
+ *   - 严禁任何背景建筑/天空/城市/灰度阴影/实心黑块
+ *   - 严禁否定词（no X / without X）—— 会反向激活权重
  */
 
 import type { GenerationRequest, GenerationResult } from "@/types";
@@ -27,28 +32,40 @@ const POLLINATIONS_MODEL = "turbo";
 const SEED_CACHE_BUST_OFFSET = 88888;
 
 /**
- * 精简短句 Prompt 模板 —— 用户实测验证可稳定生成完美黑白手绘线稿
+ * Prompt 模板表 —— 双轨制
  *
- * 严禁添加任何：
- *   - 否定词（no X / without X）—— 会反向激活权重
- *   - 冗余描述（simple vector contour / clean sharp edges 等）
- *   - 风格标签堆砌
+ * adults → 精细 Zentangle / Mandala 线稿
+ *   欧美成人涂色画行业标准：纯白底 + 密集精细空心几何花纹
+ *
+ * kids → 粗线条卡通简笔
+ *   大块镂空适合蜡笔涂色
+ *
+ * 绝对约束（两个模板都包含）：
+ *   - isolated on pure white background —— 严禁任何背景
+ *   - hollow shapes —— 严禁实心黑块
+ *   - line art / outline —— 强调纯线稿而非插画
  */
-const LINEART_PROMPT =
-  "coloring book page of a {{SUBJECT}}, black line art outline, white background";
+type Audience = "kids" | "adults";
+
+const PROMPT_TEMPLATES: Record<Audience, string> = {
+  adults:
+    "detailed zentangle coloring page for adults, intricate line art of a {{SUBJECT}}, fine black contour outlines, complex mandala geometric patterns inside, hollow shapes, isolated on pure white background, no solid black fills, no background scenery, no buildings, no shading, no grayscale, printable coloring sheet",
+  kids:
+    "simple preschool coloring book page of a {{SUBJECT}}, bold clean outlines, hollow shapes, clip art, isolated on pure white background, no shading, no solid black, no background, uncolored sheet",
+};
 
 /** 构造 Pollinations 的完整 URL
  *
- * @param params.prompt  —— 纯净主体词（如 "cat"、"cute unicorn"）
- *                         函数内部会自动套 LINEART_PROMPT 模板，
- *                         调用方绝对不要预包装！
- * @param params.width   —— 默认 1024
- * @param params.height  —— 默认 1024
- * @param params.model   —— 强制 "turbo"，忽略任何传入值
- * @param params.seed    —— 确定性种子（1 ~ 2^31-1）
+ * @param params.prompt   —— 纯净主体词（如 "cat"、"superhero"）
+ * @param params.audience —— "kids" (默认) | "adults"，决定用哪个 prompt 模板
+ * @param params.width    —— 默认 1024
+ * @param params.height   —— 默认 1024
+ * @param params.model    —— 强制 "turbo"，忽略任何传入值
+ * @param params.seed     —— 确定性种子（1 ~ 2^31-1）
  */
 export function buildPollinationsUrl(params: {
   prompt: string;
+  audience?: Audience;
   width?: number;
   height?: number;
   model?: string;
@@ -56,13 +73,17 @@ export function buildPollinationsUrl(params: {
 }): string {
   const {
     prompt: pureSubject,
+    audience = "kids",
     width = DEFAULT_WIDTH,
     height = DEFAULT_HEIGHT,
     seed,
   } = params;
 
-  // 精简短句模板 —— 纯净主体词 → 套模板 → 编码
-  const finalPrompt = LINEART_PROMPT.replace(/\{\{SUBJECT\}\}/g, pureSubject);
+  // 按 audience 选模板 → 套主体词 → 编码
+  const finalPrompt = PROMPT_TEMPLATES[audience].replace(
+    /\{\{SUBJECT\}\}/g,
+    pureSubject
+  );
   const encoded = encodeURIComponent(finalPrompt);
 
   const usp = new URLSearchParams({
@@ -81,8 +102,8 @@ export function buildPollinationsUrl(params: {
 }
 
 /** 保留兼容 —— 给需要手动构建完整 prompt 文本的场景 */
-export function wrapLineartPrompt(rawPrompt: string): string {
-  return LINEART_PROMPT.replace(/\{\{SUBJECT\}\}/g, rawPrompt);
+export function wrapLineartPrompt(rawPrompt: string, audience: Audience = "kids"): string {
+  return PROMPT_TEMPLATES[audience].replace(/\{\{SUBJECT\}\}/g, rawPrompt);
 }
 
 /** 生成随机 seed（Pollinations seed 范围 1 ~ 2^31-1） */
@@ -110,9 +131,12 @@ async function fetchFromPollinations(
   seed: number,
   req: GenerationRequest
 ): Promise<GenerationResult> {
-  // buildPollinationsUrl 内部会把 pureSubject 套入 LINEART_PROMPT 模板
+  // complexity: "adults" → Zentangle prompt，其余 → 粗线条 prompt
+  const audience: Audience = req.complexity === "adults" ? "adults" : "kids";
+
   const targetUrl = buildPollinationsUrl({
     prompt: pureSubject,
+    audience,
     width: req.width,
     height: req.height,
     seed,
@@ -131,7 +155,7 @@ async function fetchFromPollinations(
   const base64 = buffer.toString("base64");
   const mime = resp.headers.get("content-type") || "image/png";
 
-  const enhancedPrompt = wrapLineartPrompt(pureSubject);
+  const enhancedPrompt = wrapLineartPrompt(pureSubject, audience);
 
   return {
     imageUrl: toDataUrl(base64, mime),
