@@ -393,22 +393,35 @@ const CATEGORY_LABELS: Record<string, string> = {
  *   4. 点击直达详情页
  * ============================================================ */
 
+const LEVEL_BADGES: Record<string, { label: string; bg: string; fg: string }> = {
+  toddlers: { label: "Toddler · Bold", bg: "bg-amber-100", fg: "text-amber-700" },
+  preschoolers: { label: "Preschool · Fun", bg: "bg-green-100", fg: "text-green-700" },
+  kids: { label: "Kids · Clean", bg: "bg-blue-100", fg: "text-blue-700" },
+  adults: { label: "Adult · Intricate", bg: "bg-purple-100", fg: "text-purple-700" },
+};
+
 function ListingCard({ slug }: { slug: string }) {
+  // 提取标题
   const title = slug
-    .replace(/^cute-|^simple-|^detailed-|^kawaii-|^easy-/g, "")
+    .replace(/^cute-|^simple-|^detailed-|^kawaii-|^easy-|intricate-/g, "")
     .replace(/-(for-toddlers|for-preschoolers|for-kids|for-adults)$/g, "")
     .replace(/-/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());
+
+  // 提取 audience → 决定等级标签
+  const audienceMatch = slug.match(/-for-(toddlers|preschoolers|kids|adults)$/);
+  const audience = (audienceMatch?.[1] ?? "kids") as keyof typeof LEVEL_BADGES;
+  const levelBadge = LEVEL_BADGES[audience];
 
   const localSvg = getHomepageSvg(slug);
 
   return (
     <Link
       href={`/coloring-pages/${slug}`}
-      className="group block overflow-hidden rounded-xl border bg-card transition hover:-translate-y-0.5 hover:shadow-lg"
+      className="group flex flex-col overflow-hidden rounded-xl border bg-card transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:border-primary/30"
     >
-      <div className="relative overflow-hidden rounded-xl bg-white" style={{ aspectRatio: "1 / 1" }}>
-        {/* 骨架屏底图 —— 永远存在（即使图片瞬间加载，骨架屏也只存在 1 帧） */}
+      <div className="relative overflow-hidden bg-white" style={{ aspectRatio: "1 / 1" }}>
+        {/* 骨架屏底图 */}
         <div
           className="absolute inset-0"
           aria-hidden="true"
@@ -430,7 +443,7 @@ function ListingCard({ slug }: { slug: string }) {
             alt={`${title} coloring page`}
             loading="lazy"
             decoding="async"
-            className="relative h-full w-full"
+            className="relative h-full w-full transition-transform duration-300 group-hover:scale-[1.02]"
           />
         ) : (
           <div className="relative flex h-full w-full items-center justify-center">
@@ -445,8 +458,15 @@ function ListingCard({ slug }: { slug: string }) {
           </div>
         )}
       </div>
-      <div className="border-t bg-card px-3 py-2">
+
+      {/* 底部信息条：标题 + 等级标签 */}
+      <div className="border-t bg-card/80 px-3 py-2">
         <p className="truncate text-xs font-medium">{title}</p>
+        <div className="mt-1">
+          <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${levelBadge.bg} ${levelBadge.fg}`}>
+            {levelBadge.label}
+          </span>
+        </div>
       </div>
     </Link>
   );
