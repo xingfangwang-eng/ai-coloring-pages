@@ -174,7 +174,7 @@ export default async function ColoringPageDetail(
   if (!parsed) notFound();
 
   const entry = buildEntry(parsed.subject, parsed.style, parsed.audience);
-  const { url: imageUrl } = await fetchImage(entry, parsed.subject.prompt);
+  const { url: imageUrl } = await fetchImage(entry, parsed.subject.slug);
   const canonical = `${BASE_URL}/coloring-pages/${slug}`;
   const faqs = buildGeosSchemaFaqs(entry);
   const breadcrumbs = [

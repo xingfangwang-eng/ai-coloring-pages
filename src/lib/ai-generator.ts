@@ -47,6 +47,95 @@ const SEED_CACHE_BUST_OFFSET = 88888;
  */
 type Audience = "kids" | "adults";
 
+/**
+ * sanitizeSubject —— 关键词"去色净化"安全网
+ *
+ * 问题：SUBJECTS 数据里的 prompt 字段是完整自然语言描述句：
+ *   "a clever red fox with bushy tail in autumn woods"
+ * 直接喂给 Pollinations AI 会触发：
+ *   - red → AI 给狐狸上色成红色
+ *   - autumn woods → AI 画出背景（枫叶、草地）
+ *
+ * 本函数强制洗干净一切会触发上色/画背景的形容词和环境词，
+ * 只保留纯净的主体名词（fox / dinosaur / elephant）。
+ *
+ * 两层净化：
+ *   1. bannedWords 黑名单正则 —— 颜色词、环境词、拟人化形容词
+ *   2. 兜底 —— 如果净化后为空（全是禁用词），返回 "animal"
+ *
+ * 同时支持 slug 输入（如 "cute-fox-for-kids"）—— 会先拆 slug 再净化。
+ */
+const BANNED_WORDS = [
+  // 颜色词 —— 触发 AI 上色
+  "red", "blue", "green", "yellow", "pink", "purple", "orange", "black", "white",
+  "golden", "brown", "gray", "grey", "silver", "violet", "teal", "indigo",
+  "multicolored", "colorful", "rainbow", "pastel",
+
+  // 拟人化形容词 —— 让 AI 画表情/服饰/姿势（增加复杂度）
+  "sly", "friendly", "happy", "spooky", "playful", "clever", "mighty", "gentle",
+  "cute", "adorable", "tiny", "big", "great", "tall", "majestic", "fierce",
+  "sweet", "silly", "sleepy", "fluffy", "soft", "warm", "cool", "fast", "slow",
+  "busy", "charming", "powerful", "graceful", "mischievous",
+  "fun", "funny", "cuddly", "chubby", "squishy", "sparkly", "shiny", "bright",
+  "dark", "light", "pale", "deep", "vivid",
+
+  // 环境/背景词 —— 触发 AI 画自然背景（森林、天空、海洋、建筑）
+  // 注意：**保留可能出现在主体名里的词**（如 "sea" 在 "sea turtle" 中）
+  "autumn", "winter", "spring", "summer",
+  "jungle", "woods", "meadow", "tundra", "desert", "dune",
+  "bamboo", "eucalyptus",
+  "waves", "bubbles",
+  "bats", "haunted", "mansion", "barn", "farm",
+  "cushion", "honey", "pot", "basket", "carrot", "banana", "bananas", "nuts",
+
+  // 具体背景场景词（肯定出现在主体描述里）
+  "with", "nearby", "around", "background", "setting", "scene", "landscape",
+  "surrounded", "surrounding", "near", "above", "below", "beside",
+
+  // 身体部位/特征词 —— 让 AI 画额外细节（可能上色）
+  "stripes", "spots", "pattern", "details", "detailed",
+  "fur", "feathers", "whiskers", "tail", "ears", "trunk", "mane",
+  "beak", "teeth", "claws", "wings", "shell", "fin", "flippers",
+  "spots", "striped", "spotted", "patterned", "decorated",
+
+  // 动作/姿势词 —— 让 AI 画复杂姿势（增加背景）
+  "sitting", "standing", "jumping", "swimming", "flying", "walking", "running",
+  "eating", "holding", "wearing", "wagging", "curled", "clinging", "roaring",
+  "sleeping", "smiling", "playing", "chasing", "fighting", "dancing",
+  "stretching", "perched", "nestling", "grazing", "galloping", "trotting",
+];
+
+function sanitizeSubject(input: string): string {
+  // 1. 先处理 slug 格式（如 "cute-fox-for-kids"）→ 拆成单词
+  //    同时剥离停用词（a/an/the/with/in/on...）
+  let subject = input
+    .replace(/for-(kids|toddlers|preschoolers|adults)/gi, "")
+    .replace(/(cute|simple|detailed|easy|kawaii|intricate)-/gi, "")
+    .replace(/\b(a|an|the|with|on|in|at|by|and|or|near|around|over|under|through)\b/gi, " ")
+    .replace(/-/g, " ")
+    .replace(/[,.;!?'"()]/g, " ") // 清除标点！
+    .trim();
+
+  // 2. 正则剔除所有禁用词（大小写不敏感，完整单词匹配）
+  const bannedRegex = new RegExp(`\\b(${BANNED_WORDS.join("|")})\\b`, "gi");
+  subject = subject.replace(bannedRegex, "");
+
+  // 3. 清理多余空格 → 取最后 2 个词（通常是核心名词）
+  const words = subject
+    .split(/\s+/)
+    .filter((w) => w.length > 0)
+    .slice(-2); // 最多保留 2 个核心名词（如 "sea turtle"、"rock hopper"）
+
+  subject = words.join(" ");
+
+  // 4. 终极兜底
+  if (!subject || subject.length < 2) {
+    return "animal";
+  }
+
+  return subject;
+}
+
 const PROMPT_TEMPLATES: Record<Audience, string> = {
   adults:
     "detailed zentangle coloring page for adults, intricate line art of a {{SUBJECT}}, fine black contour outlines, complex mandala geometric patterns inside, hollow shapes, isolated on pure white background, no solid black fills, no background scenery, no buildings, no shading, no grayscale, printable coloring sheet",
@@ -72,14 +161,17 @@ export function buildPollinationsUrl(params: {
   seed?: number;
 }): string {
   const {
-    prompt: pureSubject,
+    prompt: rawPrompt,
     audience = "kids",
     width = DEFAULT_WIDTH,
     height = DEFAULT_HEIGHT,
     seed,
   } = params;
 
-  // 按 audience 选模板 → 套主体词 → 编码
+  // 先净化 —— 洗掉颜色词、环境词、拟人化形容词，只留核心名词
+  const pureSubject = sanitizeSubject(rawPrompt);
+
+  // 按 audience 选模板 → 套纯净主体词 → 编码
   const finalPrompt = PROMPT_TEMPLATES[audience].replace(
     /\{\{SUBJECT\}\}/g,
     pureSubject
