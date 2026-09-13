@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
 import { fetchColoringImage } from "@/lib/ai-generator";
 import { consumeQuota, getQuotaState } from "@/lib/credits";
 import type {
@@ -12,14 +11,13 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * POST /api/generate —— 带配额检查
+ * POST /api/generate —— 纯匿名模式（已移除 NextAuth）
  *
  * 流程：
  *   1. 解析 body → 校验字段
- *   2. auth() 取当前登录用户（可选，未登录也能生成但配额靠前端）
- *   3. consumeQuota 扣减一次额度 → 不够返回 403 + quota 快照
- *   4. fetchColoringImage 调 Pollinations 拿图
- *   5. 返回带 quota + watermarked 标记的响应
+ *   2. consumeQuota(undefined) —— 匿名用户，配额靠服务端默认策略
+ *   3. fetchColoringImage 调 Pollinations 拿图
+ *   4. 返回带 quota + watermarked 标记的响应
  */
 export async function POST(
   req: NextRequest
@@ -61,17 +59,8 @@ export async function POST(
     );
   }
 
-  // ---- 2. 获取 userId ----
-  let userId: string | undefined;
-  try {
-    const session = await auth();
-    userId = session?.user?.id;
-  } catch {
-    userId = undefined;
-  }
-
-  // ---- 3. 配额检查 ----
-  const quotaResult = await consumeQuota(userId);
+  // ---- 2. 配额检查（完全匿名 —— 免登录架构） ----
+  const quotaResult = await consumeQuota(undefined);
   if (!quotaResult.allowed) {
     return NextResponse.json(
       {
@@ -87,7 +76,7 @@ export async function POST(
     );
   }
 
-  // ---- 4. 调 AI ----
+  // ---- 3. 调 AI ----
   const reqBody: GenerationRequest = {
     prompt,
     complexity,
@@ -113,10 +102,7 @@ export async function POST(
     const msg = err instanceof Error ? err.message : "Unknown error";
     console.error("[api/generate] AI failed:", msg);
 
-    // 失败时 quota 已经被 consumeQuota 扣过了，
-    // 但 SQL 函数是在 1 次调用里就扣了… 实际线上需要事务回滚。
-    // MVP 阶段：这里简单给个 quota 快照，让前端知道状态。
-    const quota = userId ? await getQuotaState(userId) : quotaResult.quota;
+    const quota = await getQuotaState(undefined);
 
     return NextResponse.json(
       {
@@ -130,7 +116,7 @@ export async function POST(
 }
 
 /**
- * GET /api/generate —— 便捷入口，同样带配额
+ * GET /api/generate —— 便捷入口（同样匿名）
  */
 export async function GET(
   req: NextRequest
@@ -149,15 +135,7 @@ export async function GET(
     );
   }
 
-  let userId: string | undefined;
-  try {
-    const session = await auth();
-    userId = session?.user?.id;
-  } catch {
-    userId = undefined;
-  }
-
-  const quotaResult = await consumeQuota(userId);
+  const quotaResult = await consumeQuota(undefined);
   if (!quotaResult.allowed) {
     return NextResponse.json(
       {
@@ -190,7 +168,7 @@ export async function GET(
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown error";
-    const quota = userId ? await getQuotaState(userId) : quotaResult.quota;
+    const quota = await getQuotaState(undefined);
     return NextResponse.json({ ok: false, error: msg, quota }, { status: 502 });
   }
 }
