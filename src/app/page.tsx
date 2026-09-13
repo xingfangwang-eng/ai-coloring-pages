@@ -317,6 +317,189 @@ export default function HomePage() {
           />
         </div>
       </section>
+
+      {/* ============================================================
+          🕸 SEO INTERNAL LINK MATRIX —— Googlebot 抓取深度加速
+          密集内链图谱：人群分类 + 40+ 直达长尾页 + sitemap 入口
+          ============================================================ */}
+      <section className="border-t bg-muted/20">
+        <div className="mx-auto max-w-6xl px-4 py-14">
+          <h2 className="mb-2 text-2xl font-bold tracking-tight sm:text-3xl">
+            🗺 Explore All Coloring Collections
+          </h2>
+          <p className="mb-8 text-sm text-muted-foreground">
+            Browse our complete library of free printable coloring pages — click any link to start coloring
+          </p>
+
+          {/* --- 按人群分类（Audience Hubs） --- */}
+          <div className="mb-10">
+            <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              Browse by Age Group
+            </h3>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href="/coloring-pages/for-toddlers"
+                className="rounded-full border bg-background px-4 py-2 text-sm font-medium transition hover:border-primary hover:text-primary"
+              >
+                Coloring Pages for Toddlers
+              </Link>
+              <Link
+                href="/coloring-pages/for-preschoolers"
+                className="rounded-full border bg-background px-4 py-2 text-sm font-medium transition hover:border-primary hover:text-primary"
+              >
+                Coloring Pages for Preschoolers
+              </Link>
+              <Link
+                href="/coloring-pages/for-kids"
+                className="rounded-full border bg-background px-4 py-2 text-sm font-medium transition hover:border-primary hover:text-primary"
+              >
+                Coloring Pages for Kids
+              </Link>
+              <Link
+                href="/coloring-pages/for-adults"
+                className="rounded-full border bg-background px-4 py-2 text-sm font-medium transition hover:border-primary hover:text-primary"
+              >
+                Intricate Coloring Pages for Adults
+              </Link>
+            </div>
+          </div>
+
+          {/* --- 40+ 具体长尾页内链（纯文字 <a>，爬虫无障碍） --- */}
+          <div className="mb-8 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+            {/* Animals */}
+            <div>
+              <h4 className="mb-3 text-sm font-semibold text-foreground">🐾 Animals</h4>
+              <ul className="space-y-1.5 text-sm">
+                {[
+                  { slug: "cute-cat-for-kids", label: "Cat Coloring Page" },
+                  { slug: "cute-dog-for-kids", label: "Dog Coloring Page" },
+                  { slug: "cute-puppy-for-kids", label: "Cute Puppy Coloring Sheet" },
+                  { slug: "cute-kitten-for-kids", label: "Kitten Coloring Page" },
+                  { slug: "cute-dinosaur-for-kids", label: "Dinosaur Coloring Page" },
+                  { slug: "detailed-t-rex-for-adults", label: "T-Rex Dinosaur Zentangle" },
+                  { slug: "cute-lion-for-kids", label: "Lion Coloring Page" },
+                  { slug: "cute-tiger-for-kids", label: "Tiger Coloring Sheet" },
+                  { slug: "cute-elephant-for-kids", label: "Elephant Coloring Page" },
+                  { slug: "cute-butterfly-for-kids", label: "Butterfly Coloring Page" },
+                  { slug: "detailed-butterfly-for-adults", label: "Intricate Butterfly Mandala" },
+                ].map((l) => (
+                  <li key={l.slug}>
+                    <Link
+                      href={`/coloring-pages/${l.slug}`}
+                      className="text-muted-foreground transition hover:text-primary"
+                    >
+                      {l.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Holidays & Festivals */}
+            <div>
+              <h4 className="mb-3 text-sm font-semibold text-foreground">🎃 Holidays & Festivals</h4>
+              <ul className="space-y-1.5 text-sm">
+                {[
+                  { slug: "cute-halloween-pumpkin-for-kids", label: "Halloween Pumpkin Coloring Sheet" },
+                  { slug: "cute-halloween-ghost-for-kids", label: "Halloween Ghost Coloring Page" },
+                  { slug: "cute-christmas-santa-for-kids", label: "Christmas Santa Coloring Page" },
+                  { slug: "cute-christmas-tree-for-kids", label: "Christmas Tree Coloring Sheet" },
+                  { slug: "cute-christmas-reindeer-for-kids", label: "Christmas Reindeer Coloring Page" },
+                  { slug: "cute-easter-bunny-for-kids", label: "Easter Bunny Coloring Page" },
+                  { slug: "cute-thanksgiving-turkey-for-kids", label: "Thanksgiving Turkey Coloring Sheet" },
+                  { slug: "cute-valentines-heart-for-kids", label: "Valentine Heart Coloring Page" },
+                  { slug: "cute-birthday-cake-for-kids", label: "Birthday Cake Coloring Sheet" },
+                ].map((l) => (
+                  <li key={l.slug}>
+                    <Link
+                      href={`/coloring-pages/${l.slug}`}
+                      className="text-muted-foreground transition hover:text-primary"
+                    >
+                      {l.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Fantasy & Characters */}
+            <div>
+              <h4 className="mb-3 text-sm font-semibold text-foreground">🦄 Fantasy & Characters</h4>
+              <ul className="space-y-1.5 text-sm">
+                {[
+                  { slug: "cute-princess-for-kids", label: "Princess Coloring Page" },
+                  { slug: "cute-mermaid-for-kids", label: "Mermaid Coloring Sheet" },
+                  { slug: "cute-unicorn-for-kids", label: "Unicorn Coloring Page" },
+                  { slug: "simple-superhero-for-kids", label: "Superhero Coloring Page" },
+                  { slug: "detailed-superhero-for-adults", label: "Superhero Zentangle for Adults" },
+                  { slug: "cute-fairy-for-kids", label: "Fairy Coloring Page" },
+                  { slug: "detailed-dragon-for-adults", label: "Fantasy Dragon Zentangle" },
+                  { slug: "cute-robot-for-kids", label: "Robot Coloring Sheet" },
+                  { slug: "cute-pirate-for-kids", label: "Pirate Coloring Page" },
+                  { slug: "detailed-mandala-for-adults", label: "Adult Mandala Coloring" },
+                ].map((l) => (
+                  <li key={l.slug}>
+                    <Link
+                      href={`/coloring-pages/${l.slug}`}
+                      className="text-muted-foreground transition hover:text-primary"
+                    >
+                      {l.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Vehicles, Nature & More */}
+            <div>
+              <h4 className="mb-3 text-sm font-semibold text-foreground">🚗 Vehicles, Nature & More</h4>
+              <ul className="space-y-1.5 text-sm">
+                {[
+                  { slug: "cute-sports-car-for-kids", label: "Sports Car Coloring Page" },
+                  { slug: "cute-monster-truck-for-kids", label: "Monster Truck Coloring Sheet" },
+                  { slug: "cute-fire-truck-for-kids", label: "Fire Truck Coloring Page" },
+                  { slug: "cute-school-bus-for-kids", label: "School Bus Coloring Sheet" },
+                  { slug: "cute-rocket-for-kids", label: "Space Rocket Coloring Page" },
+                  { slug: "cute-airplane-for-kids", label: "Airplane Coloring Sheet" },
+                  { slug: "cute-princess-for-toddlers", label: "Princess for Toddlers" },
+                  { slug: "detailed-mountain-for-adults", label: "Mountain Landscape Zentangle" },
+                  { slug: "cute-beach-for-kids", label: "Beach Coloring Page" },
+                  { slug: "cute-ice-cream-for-kids", label: "Ice Cream Coloring Sheet" },
+                  { slug: "cute-pizza-for-kids", label: "Pizza Coloring Page" },
+                  { slug: "cute-donut-for-kids", label: "Donut Coloring Sheet" },
+                ].map((l) => (
+                  <li key={l.slug}>
+                    <Link
+                      href={`/coloring-pages/${l.slug}`}
+                      className="text-muted-foreground transition hover:text-primary"
+                    >
+                      {l.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {/* --- 语义化 Footer：Sitemap + 面包屑 --- */}
+          <nav aria-label="Site navigation" className="border-t pt-6">
+            <ol className="mb-4 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <li><Link href="/" className="hover:text-primary">Home</Link></li>
+              <li>›</li>
+              <li><Link href="/coloring-pages" className="hover:text-primary">Coloring Pages</Link></li>
+              <li>›</li>
+              <li className="text-foreground">Explore All Collections</li>
+            </ol>
+            <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+              <Link href="/coloring-pages" className="hover:text-primary">All Coloring Pages</Link>
+              <Link href="/pricing" className="hover:text-primary">Pricing</Link>
+              <Link href="/about" className="hover:text-primary">About</Link>
+              <Link href="/sitemap.xml" className="hover:text-primary">HTML Sitemap</Link>
+              <Link href="/robots.txt" className="hover:text-primary">Robots.txt</Link>
+            </div>
+          </nav>
+        </div>
+      </section>
     </main>
   );
 }
