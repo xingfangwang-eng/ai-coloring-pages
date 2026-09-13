@@ -39,6 +39,13 @@ import type {
 
 const HISTORY_KEY = "coloringpages:history:v1";
 const HISTORY_MAX = 5;
+const VIP_STORAGE_KEY = "coloringpages:vip:v1";
+
+type VipStatus = {
+  vip_status: "active" | "inactive";
+  vip_type: "starter" | "lifetime" | null;
+  purchased_at: number | null;
+};
 
 const ANONYMOUS_QUOTA: UserQuota = {
   plan: "free",
@@ -61,6 +68,9 @@ export default function WorkspacePage() {
   const [quota, setQuota] = useState<UserQuota>(ANONYMOUS_QUOTA);
   const [mounted, setMounted] = useState(false);
 
+  // VIP 状态（纯前端 localStorage）
+  const [vip, setVip] = useState<VipStatus | null>(null);
+
   // 本地历史记录
   const [history, setHistory] = useLocalStorage<HistoryItem[]>(HISTORY_KEY, []);
   // 云端历史
@@ -69,6 +79,16 @@ export default function WorkspacePage() {
   // mount 后才允许渲染真实数据 —— 彻底消除 hydration mismatch
   useEffect(() => {
     setMounted(true);
+    // 同步读取 VIP 状态
+    try {
+      const raw = window.localStorage.getItem(VIP_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as VipStatus;
+        if (parsed.vip_status === "active") setVip(parsed);
+      }
+    } catch {
+      // ignore
+    }
   }, []);
 
   const mergedHistory =
@@ -245,7 +265,7 @@ export default function WorkspacePage() {
         {/* 工作台专属工具栏：状态徽章 */}
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-base font-semibold">🎨 Studio</h1>
-          <QuotaBadge quota={quota} />
+          <QuotaBadge quota={quota} vipActive={vip?.vip_status === "active"} vipType={vip?.vip_type} />
           <CloudStatusBadge
             sessionStatus={sessionStatus}
             cloudEnabled={cloudEnabled}
@@ -318,7 +338,26 @@ export default function WorkspacePage() {
 }
 
 /** 顶部配额小徽章 */
-function QuotaBadge({ quota }: { quota: UserQuota }) {
+function QuotaBadge({
+  quota,
+  vipActive,
+  vipType,
+}: {
+  quota: UserQuota;
+  vipActive?: boolean;
+  vipType?: "starter" | "lifetime" | null;
+}) {
+  // VIP 优先级最高 —— 覆盖一切服务端 quota
+  if (vipActive) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border bg-amber-500/10 px-2 py-0.5 text-[11px] text-amber-700 ring-1 ring-amber-500/30">
+        <Crown className="size-3" />
+        VIP · {vipType === "lifetime" ? "Lifetime" : "Starter"}
+        <span className="text-amber-600">· Unlimited</span>
+      </span>
+    );
+  }
+
   if (quota.plan === "pro") {
     return (
       <span className="inline-flex items-center gap-1 rounded-full border bg-amber-500/10 px-2 py-0.5 text-[11px] text-amber-700">
