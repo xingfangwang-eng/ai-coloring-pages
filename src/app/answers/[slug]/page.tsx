@@ -22,7 +22,7 @@ import { ArrowRight, Printer, Sparkles, Shield, FileDown } from "lucide-react";
 import GeoSchema from "@/components/geo-schema";
 import BlufSummary from "@/components/bluf-summary";
 
-const BASE_URL = "https://wangdadi.xyz";
+const BASE_URL = "https://www.wangdadi.xyz";
 
 interface AnswerPage {
   slug: string;

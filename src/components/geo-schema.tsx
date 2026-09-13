@@ -15,7 +15,7 @@
  *   5. WebPage（当前页面基础声明）
  */
 
-const BASE_URL = "https://wangdadi.xyz";
+const BASE_URL = "https://www.wangdadi.xyz";
 
 /** 全站唯一的 SoftwareApplication Schema —— 所有页面共享 */
 export const GEO_WEB_APPLICATION = {

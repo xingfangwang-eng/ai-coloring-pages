@@ -29,7 +29,7 @@ import GeoSchema from "@/components/geo-schema";
 import BlufSummary from "@/components/bluf-summary";
 import { getHomepageSvg } from "@/lib/fallback-svgs";
 
-const BASE_URL = "https://wangdadi.xyz";
+const BASE_URL = "https://www.wangdadi.xyz";
 
 /**
  * 判断 slug 是否为 audience slug（for-kids / for-toddlers / for-preschoolers / for-adults）

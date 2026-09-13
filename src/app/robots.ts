@@ -13,6 +13,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ["/api/", "/workspace", "/profile"],
       },
     ],
-    sitemap: "https://wangdadi.xyz/sitemap.xml",
+    sitemap: "https://www.wangdadi.xyz/sitemap.xml",
   };
 }

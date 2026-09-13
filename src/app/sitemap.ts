@@ -8,7 +8,7 @@
 import type { MetadataRoute } from "next";
 import { getAllUSColoringSlugs } from "@/lib/us-coloring-data";
 
-const BASE_URL = "https://wangdadi.xyz";
+const BASE_URL = "https://www.wangdadi.xyz";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const staticPages: MetadataRoute.Sitemap = [
