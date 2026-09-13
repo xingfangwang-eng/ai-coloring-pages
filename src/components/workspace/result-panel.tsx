@@ -6,38 +6,11 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import type { GenerateApiSuccess } from "@/types";
-import {
-  getCleanCroppedImageData,
-  computePdfPlacement,
-  DEFAULT_MARGIN_MM,
-} from "@/lib/pdf-utils";
+import { exportToPdf } from "@/lib/pdf-utils";
 
 interface ResultPanelProps {
   result: GenerateApiSuccess;
   onRetry: () => void;
-}
-
-/**
- * 图片加载完成后返回 naturalWidth/naturalHeight
- * 用于等比缩放计算（Canvas 裁切后高度会变，必须动态读取）
- */
-function getImageNaturalSize(src: string): Promise<{ w: number; h: number }> {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
-    img.onerror = () => resolve({ w: 1024, h: 978 }); // fallback
-    img.src = src;
-  });
-}
-
-/**
- * 从 data URL 中提取 MIME 类型
- * 例如 "data:image/jpeg;base64,...." → "image/jpeg"
- */
-function parseMimeType(dataUrl: string): string {
-  const match = dataUrl.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,/);
-  return match?.[1] ?? "image/png";
 }
 
 /** MIME → 文件扩展名 */
@@ -54,11 +27,10 @@ function mimeToExt(mime: string): string {
   }
 }
 
-/** MIME → jsPDF addImage 的 format 参数 */
-function mimeToJspdfFormat(mime: string): "JPEG" | "PNG" | "WEBP" {
-  if (mime === "image/jpeg") return "JPEG";
-  if (mime === "image/webp") return "WEBP";
-  return "PNG";
+/** 从 data URL 中提取 MIME 类型 */
+function parseMimeType(dataUrl: string): string {
+  const match = dataUrl.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,/);
+  return match?.[1] ?? "image/png";
 }
 
 export function ResultPanel({ result, onRetry }: ResultPanelProps) {
@@ -66,7 +38,7 @@ export function ResultPanel({ result, onRetry }: ResultPanelProps) {
   const mimeType = parseMimeType(result.imageUrl);
   const ext = mimeToExt(mimeType);
 
-  /** 下载图片：利用 data URL + 临时 <a download> */
+  /** 下载 PNG —— 直接用浏览器原生 <a download> */
   const handleDownloadImage = () => {
     try {
       const a = document.createElement("a");
@@ -81,42 +53,11 @@ export function ResultPanel({ result, onRetry }: ResultPanelProps) {
     }
   };
 
-  /** 导出 A4 PDF：去水印 → 读页面尺寸 → 等比缩放写入 */
+  /** 导出 A4 PDF —— 统一委托 exportToPdf() */
   const handleExportPdf = async () => {
     setExporting(true);
     try {
-      // 1. Canvas 物理切掉底部 4.5% Pollinations 水印
-      const cleanDataUrl = await getCleanCroppedImageData(result.imageUrl);
-
-      // 2. 读取裁切后图片的真实像素尺寸（不再是 1024×1024 正方形了）
-      const cleanSize = await getImageNaturalSize(cleanDataUrl);
-
-      const { default: jsPDF } = await import("jspdf");
-
-      // 3. 先建 A4 PDF
-      const pdf = new jsPDF({
-        orientation: "portrait",
-        unit: "mm",
-        format: "a4",
-      });
-
-      // 4. 从 jsPDF 内部读取页面真实尺寸（权威来源）
-      const pageW = pdf.internal.pageSize.getWidth();
-      const pageH = pdf.internal.pageSize.getHeight();
-
-      // 5. 等比缩放 + 居中（contain 算法）
-      const { printW, printH, x, y } = computePdfPlacement(
-        pageW,
-        pageH,
-        DEFAULT_MARGIN_MM,
-        cleanSize.w,
-        cleanSize.h
-      );
-
-      // 6. 写入干净的 PNG（物理去水印，contain 等比不变形）
-      pdf.addImage(cleanDataUrl, "PNG", x, y, printW, printH);
-      pdf.save(`coloring-page-${result.seed}-A4.pdf`);
-
+      await exportToPdf(result.imageUrl, `coloring-page-${result.seed}-A4`, "a4");
       toast.success("A4 PDF exported ✨");
     } catch (err) {
       console.error("[ResultPanel] PDF export failed:", err);
