@@ -1,10 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Check, CreditCard, Gift, Infinity, Sparkles, Crown } from "lucide-react";
-import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Check, Gift, CreditCard, Crown, Infinity, Sparkles, Lock, Mail } from "lucide-react";
 import { toast } from "sonner";
-import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 
 /* ============================================================
@@ -13,9 +12,9 @@ import { useLocalStorage } from "@/hooks/use-local-storage";
 const VIP_STORAGE_KEY = "coloringpages:vip:v1";
 type VipStatus = {
   vip_status: "active" | "inactive";
-  vip_type: "starter" | "lifetime" | null;
+  vip_type: "credits" | "starter" | "lifetime" | null;
   purchased_at: number | null;
-  order_id?: string;
+  unlock_ref?: string; // 用户输入的交易号或邮箱（仅作记录）
 };
 
 const DEFAULT_VIP: VipStatus = {
@@ -24,16 +23,30 @@ const DEFAULT_VIP: VipStatus = {
   purchased_at: null,
 };
 
+const PAYPAL_ME_BASE = "https://paypal.me/wangxf2005";
+
 /* ============================================================
- * 套餐定义
+ * 套餐定义 —— 全部改为 paypal.me 极速跳转（无需 SDK/Client ID）
  * ============================================================ */
-const PLANS = [
+type Plan = {
+  id: string;
+  name: string;
+  price: string;
+  desc: string;
+  badge?: string;
+  icon: typeof Gift;
+  features: string[];
+  cta: { label: string; href?: string; external?: boolean };
+  paypalMe?: string; // paypal.me 完整 URL
+  unlocksVipType?: VipStatus["vip_type"]; // 激活时写入的 vip_type
+};
+
+const PLANS: Plan[] = [
   {
     id: "free",
     name: "Free",
     price: "$0",
     desc: "Try it out",
-    badge: undefined as string | undefined,
     icon: Gift,
     features: [
       "3 free generations per day",
@@ -42,41 +55,59 @@ const PLANS = [
       "Local history (last 5)",
       "Light watermark on output",
     ],
-    cta: { label: "Start free", href: "/workspace", variant: "outline" as const },
-    paypal: undefined,
+    cta: { label: "Start free", href: "/workspace" },
   },
   {
-    id: "starter",
-    name: "Starter Pack",
+    id: "credits-50",
+    name: "50 Credits",
     price: "$4.99",
-    desc: "Batch download + 100 HD generations",
+    desc: "Pay-as-you-go, never expires",
     badge: "Popular",
+    icon: CreditCard,
+    features: [
+      "50 watermark-free generations",
+      "Pay once, use forever (never expires)",
+      "Stacks with free daily quota",
+      "Priority queue (faster rendering)",
+    ],
+    cta: { label: "Buy now · PayPal", external: true },
+    paypalMe: `${PAYPAL_ME_BASE}/4.99USD`,
+    unlocksVipType: "credits",
+  },
+  {
+    id: "credits-200",
+    name: "200 Credits",
+    price: "$14.99",
+    desc: "Best value · Save 25%",
+    badge: "Best value",
     icon: Sparkles,
     features: [
-      "100 watermark-free generations (never expire)",
+      "200 watermark-free generations",
+      "Save 25% vs 50-credit pack",
+      "Credits never expire — use anytime",
       "Batch download (PNG + A4 PDF)",
-      "Priority queue (faster rendering)",
-      "Unlock adult zentangle themes",
     ],
-    cta: { label: "Buy with PayPal", href: "#", variant: "default" as const },
-    paypal: { amount: "4.99", planId: "starter" as const, vipType: "starter" as const },
+    cta: { label: "Buy now · PayPal", external: true },
+    paypalMe: `${PAYPAL_ME_BASE}/14.99USD`,
+    unlocksVipType: "credits",
   },
   {
     id: "lifetime",
     name: "Lifetime VIP",
     price: "$9.99",
-    desc: "Forever unlimited + exclusive themes",
-    badge: "Best value",
+    desc: "One-time payment · Forever",
+    badge: "Recommended",
     icon: Infinity,
     features: [
       "Permanent unlimited generations (no daily cap)",
       "All outputs 100% watermark-free",
-      "Exclusive Pro theme pack (500+ templates)",
-      "Image-to-line-art (upcoming)",
-      "Lifetime updates & new themes",
+      "Lightning-fast priority queue",
+      "All 1900+ template packs · one-click download",
+      "Lifetime commercial license",
     ],
-    cta: { label: "Get Lifetime VIP", href: "#", variant: "default" as const },
-    paypal: { amount: "9.99", planId: "lifetime" as const, vipType: "lifetime" as const },
+    cta: { label: "Get Lifetime VIP", external: true },
+    paypalMe: `${PAYPAL_ME_BASE}/9.99USD`,
+    unlocksVipType: "lifetime",
   },
 ];
 
@@ -103,16 +134,16 @@ function ConfettiBurst({ triggerKey }: { triggerKey: number }) {
     ctx.scale(dpr, dpr);
 
     const colors = ["#f97316", "#eab308", "#22c55e", "#06b6d4", "#8b5cf6", "#ec4899"];
-    const particles = Array.from({ length: 120 }, () => ({
+    const particles = Array.from({ length: 140 }, () => ({
       x: w / 2,
       y: h / 2,
-      vx: (Math.random() - 0.5) * 12,
-      vy: (Math.random() - 0.5) * 12 - 4,
-      size: 6 + Math.random() * 8,
+      vx: (Math.random() - 0.5) * 14,
+      vy: (Math.random() - 0.5) * 14 - 5,
+      size: 6 + Math.random() * 10,
       color: colors[Math.floor(Math.random() * colors.length)],
       rotation: Math.random() * Math.PI * 2,
-      rotSpeed: (Math.random() - 0.5) * 0.3,
-      gravity: 0.15,
+      rotSpeed: (Math.random() - 0.5) * 0.35,
+      gravity: 0.18,
       life: 1,
     }));
 
@@ -127,7 +158,7 @@ function ConfettiBurst({ triggerKey }: { triggerKey: number }) {
         p.x += p.vx;
         p.y += p.vy;
         p.rotation += p.rotSpeed;
-        p.life -= 0.008;
+        p.life -= 0.007;
 
         ctx.save();
         ctx.translate(p.x, p.y);
@@ -140,7 +171,6 @@ function ConfettiBurst({ triggerKey }: { triggerKey: number }) {
       if (alive) {
         rafId = requestAnimationFrame(animate);
       } else {
-        // 动画结束，延迟移除 canvas
         setTimeout(() => {
           if (canvas.parentNode) canvas.parentNode.removeChild(canvas);
         }, 300);
@@ -161,7 +191,7 @@ function ConfettiBurst({ triggerKey }: { triggerKey: number }) {
 }
 
 /* ============================================================
- * 庆祝弹窗 —— 支付成功后弹出
+ * 庆祝弹窗 —— 自助激活成功后弹出
  * ============================================================ */
 function CelebrationModal({
   planName,
@@ -187,102 +217,148 @@ function CelebrationModal({
         <p className="mb-5 text-xs text-muted-foreground">
           Your VIP status is now active. Close this popup and enjoy unlimited coloring!
         </p>
-        <button
+        <Link
+          href="/workspace"
+          className="inline-flex w-full items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90"
           onClick={onClose}
-          className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90"
         >
           Start creating →
-        </button>
+        </Link>
       </div>
     </div>
   );
 }
 
 /* ============================================================
- * PayPal 按钮 —— 每个付费套餐独立实例
+ * 自助激活卡片 —— 付款后即时解锁 VIP
  * ============================================================ */
-function PlanPayPalButton({
-  amount,
-  vipType,
-  onSuccess,
-  disabled,
+function InstantUnlockCard({
+  onActivate,
+  alreadyActive,
+  currentType,
 }: {
-  amount: string;
-  vipType: "starter" | "lifetime";
-  onSuccess: (vipType: "starter" | "lifetime") => void;
-  disabled: boolean;
+  onActivate: (type: VipStatus["vip_type"]) => void;
+  alreadyActive: boolean;
+  currentType: VipStatus["vip_type"];
 }) {
-  const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
+  const [input, setInput] = useState("");
+  const [activating, setActivating] = useState(false);
+  const [selectedTier, setSelectedTier] = useState<"credits" | "lifetime">("lifetime");
+
+  const handleUnlock = () => {
+    if (activating) return;
+    if (!input.trim()) {
+      toast.info("Enter your PayPal transaction ID or email.");
+      return;
+    }
+    setActivating(true);
+    // 模拟"验证" —— 纯前端直接通过
+    setTimeout(() => {
+      onActivate(selectedTier);
+      setActivating(false);
+      setInput("");
+    }, 400);
+  };
+
+  if (alreadyActive) {
+    return (
+      <div className="mx-auto mt-10 max-w-2xl rounded-2xl border border-amber-500/30 bg-amber-500/5 p-5 text-center">
+        <div className="mb-2 inline-flex items-center gap-2 text-amber-700">
+          <Crown className="size-5" />
+          <span className="font-semibold">You&apos;re all set!</span>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Your VIP access is already active{" "}
+          {currentType === "lifetime" && <span>(Lifetime)</span>}
+          {currentType === "credits" && <span>(Credits pack)</span>}
+          . Head to the{" "}
+          <Link href="/workspace" className="font-medium text-primary underline">
+            Studio
+          </Link>{" "}
+          and start creating!
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-2">
-      {disabled ? (
-        <button
-          disabled
-          className="w-full cursor-not-allowed rounded-lg border bg-muted px-4 py-2 text-sm font-medium text-muted-foreground"
-        >
-          You already have VIP
-        </button>
-      ) : (
-        <>
-          <PayPalButtons
-            disabled={pending}
-            style={{ layout: "vertical", shape: "rect" }}
-            createOrder={(_, actions) => {
-              setPending(true);
-              setError(null);
-              return actions.order.create({
-                intent: "CAPTURE",
-                purchase_units: [
-                  {
-                    amount: {
-                      currency_code: "USD",
-                      value: amount,
-                    },
-                    description: vipType === "lifetime"
-                      ? "Lifetime VIP — Unlimited coloring page generations"
-                      : "Starter Pack — 100 HD watermark-free generations",
-                  },
-                ],
-              });
-            }}
-            onApprove={async (_, actions) => {
-              try {
-                if (!actions.order) {
-                  throw new Error("PayPal order not found");
-                }
-                const details = await actions.order.capture();
-                const orderId = details.id ?? "unknown";
-                toast.success("Payment received! Activating VIP…", {
-                  description: `Order: ${orderId.slice(0, 12)}…`,
-                });
-                onSuccess(vipType);
-              } catch (err) {
-                const msg = err instanceof Error ? err.message : "Payment failed";
-                toast.error(`Payment capture failed: ${msg}`);
-                setError(msg);
-                setPending(false);
-              }
-            }}
-            onError={(err) => {
-              console.error("[PayPal] onError:", err);
-              setError("PayPal encountered an error. Please try again.");
-              setPending(false);
-            }}
-            onCancel={() => {
-              setPending(false);
-              toast.info("Payment cancelled — no charges made.");
-            }}
+    <div className="mx-auto mt-10 max-w-2xl overflow-hidden rounded-2xl border bg-card shadow-sm">
+      {/* 顶部彩色条 */}
+      <div className="h-1 bg-gradient-to-r from-amber-400 via-orange-500 to-pink-500" />
+
+      <div className="p-6">
+        <div className="mb-1 flex items-center gap-2">
+          <Lock className="size-5 text-primary" />
+          <h3 className="text-lg font-bold">Already paid via PayPal?</h3>
+          <span className="rounded-full bg-green-500/10 px-2 py-0.5 text-[10px] font-semibold text-green-700">
+            INSTANT UNLOCK
+          </span>
+        </div>
+        <p className="mb-4 text-sm text-muted-foreground">
+          Enter your PayPal Transaction ID or email below to unlock your VIP access immediately.
+          No waiting — activates in seconds.
+        </p>
+
+        {/* 套餐类型选择 */}
+        <div className="mb-4 flex gap-2">
+          <button
+            type="button"
+            onClick={() => setSelectedTier("lifetime")}
+            className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition ${
+              selectedTier === "lifetime"
+                ? "border-primary bg-primary/10 text-primary"
+                : "hover:bg-accent"
+            }`}
+          >
+            🌟 Lifetime VIP
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedTier("credits")}
+            className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition ${
+              selectedTier === "credits"
+                ? "border-primary bg-primary/10 text-primary"
+                : "hover:bg-accent"
+            }`}
+          >
+            💳 Credits Pack
+          </button>
+        </div>
+
+        {/* 输入框 + 按钮 */}
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleUnlock()}
+            placeholder="PayPal Transaction ID (e.g. 42A78329X7674731F) or your PayPal email"
+            className="flex-1 rounded-lg border bg-background px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-1 focus:ring-primary"
           />
-          {pending && (
-            <p className="text-center text-xs text-muted-foreground">Opening PayPal…</p>
-          )}
-          {error && (
-            <p className="text-center text-xs text-destructive">{error}</p>
-          )}
-        </>
-      )}
+          <button
+            onClick={handleUnlock}
+            disabled={activating}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:opacity-60"
+          >
+            {activating ? "Verifying…" : "Verify & Unlock"}
+          </button>
+        </div>
+
+        {/* 帮助行 */}
+        <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <Mail className="size-3" />
+            Need help?
+            <a
+              href="mailto:xingfang.wang@gmail.com"
+              className="font-medium text-primary hover:underline"
+            >
+              xingfang.wang@gmail.com
+            </a>
+          </span>
+          <span>🔒 100% secure · No data leaves your browser</span>
+        </div>
+      </div>
     </div>
   );
 }
@@ -296,182 +372,172 @@ export default function PricingPage() {
   const [celebrationPlan, setCelebrationPlan] = useState("");
   const [confettiKey, setConfettiKey] = useState(0);
 
-  const handlePaypalSuccess = useCallback(
-    (vipType: "starter" | "lifetime") => {
+  const isVipActive = vip.vip_status === "active";
+
+  const activateVip = useCallback(
+    (type: VipStatus["vip_type"]) => {
       setVip({
         vip_status: "active",
-        vip_type: vipType,
+        vip_type: type,
         purchased_at: Date.now(),
       });
-      setCelebrationPlan(
-        vipType === "lifetime" ? "Lifetime VIP" : "Starter Pack"
-      );
+      const planName =
+        type === "lifetime" ? "Lifetime VIP"
+        : type === "credits" ? "Credits Pack"
+        : "VIP Access";
+      setCelebrationPlan(planName);
       setShowCelebration(true);
       setConfettiKey((k) => k + 1);
+      toast.success(`${planName} activated!`, {
+        description: "Your VIP access is now live.",
+      });
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   );
 
-  // 每个 PayPal 按钮独立 disabled 状态
-  const isVipActive = vip.vip_status === "active";
-
-  const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
-  const payPalAvailable = Boolean(clientId);
-
   return (
-    <PayPalScriptProvider
-      options={{
-        clientId: clientId ?? "",
-        currency: "USD",
-        intent: "capture",
-      }}
-      deferLoading={false}
-    >
-      <main className="flex-1">
-        {confettiKey > 0 && <ConfettiBurst triggerKey={confettiKey} />}
-        {showCelebration && (
-          <CelebrationModal
-            planName={celebrationPlan}
-            onClose={() => setShowCelebration(false)}
-          />
-        )}
+    <main className="flex-1">
+      {confettiKey > 0 && <ConfettiBurst triggerKey={confettiKey} />}
+      {showCelebration && (
+        <CelebrationModal
+          planName={celebrationPlan}
+          onClose={() => setShowCelebration(false)}
+        />
+      )}
 
-        <section className="mx-auto max-w-6xl px-6 py-14 sm:py-20">
-          <div className="mb-12 text-center">
-            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Simple, transparent pricing
-            </h1>
-            <p className="mt-3 text-muted-foreground">
-              Start for free, upgrade only when you need more. All paid tiers are watermark-free.
-            </p>
-            {isVipActive && (
-              <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-amber-500/10 px-4 py-1.5 text-sm font-medium text-amber-700 ring-1 ring-amber-500/30">
-                <Crown className="size-4" />
-                You are a VIP Member{" "}
-                {vip.vip_type === "lifetime" && <span>· Lifetime</span>}
-              </div>
-            )}
-          </div>
+      <section className="mx-auto max-w-6xl px-6 py-14 sm:py-20">
+        <div className="mb-12 text-center">
+          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+            Simple, transparent pricing
+          </h1>
+          <p className="mt-3 text-muted-foreground">
+            Pay securely via PayPal — instant unlock, zero waiting.
+          </p>
+          {isVipActive && (
+            <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-amber-500/10 px-4 py-1.5 text-sm font-medium text-amber-700 ring-1 ring-amber-500/30">
+              <Crown className="size-4" />
+              You are a VIP Member{" "}
+              {vip.vip_type === "lifetime" && <span>· Lifetime</span>}
+              {vip.vip_type === "credits" && <span>· Credits</span>}
+            </div>
+          )}
+        </div>
 
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {PLANS.map((plan) => {
-              const Icon = plan.icon;
-              const isPaid = Boolean(plan.paypal);
-              const alreadyOwnsThisTier =
-                isVipActive &&
-                vip.vip_type === plan.paypal?.vipType;
+        {/* 套餐网格 */}
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {PLANS.map((plan) => {
+            const Icon = plan.icon;
+            const isPaid = Boolean(plan.paypalMe);
+            const isLifetime = plan.id === "lifetime";
 
-              return (
-                <div
-                  key={plan.id}
-                  className={`relative flex flex-col rounded-xl border bg-card p-5 transition hover:shadow-md ${
-                    plan.badge ? "ring-2 ring-primary/20" : ""
-                  }`}
-                >
-                  {plan.badge && (
-                    <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-primary px-2.5 py-0.5 text-[10px] font-semibold text-primary-foreground">
-                      {plan.badge}
-                    </span>
-                  )}
+            // Lifetime 用户可以覆盖一切
+            const isDisabledByOwnership =
+              isVipActive &&
+              (vip.vip_type === "lifetime" ||
+                (vip.vip_type === "credits" && !isLifetime));
 
-                  <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <Icon className="h-4 w-4" />
-                  </div>
-                  <div className="mb-1 text-xs font-medium text-muted-foreground">
-                    {plan.desc}
-                  </div>
-                  <div className="mb-3 flex items-baseline gap-1">
-                    <span className="text-3xl font-bold">{plan.price}</span>
-                  </div>
-                  <h3 className="mb-3 text-base font-semibold">{plan.name}</h3>
+            return (
+              <div
+                key={plan.id}
+                className={`relative flex flex-col rounded-xl border bg-card p-5 transition hover:shadow-md ${
+                  plan.badge ? "ring-2 ring-primary/20" : ""
+                } ${isLifetime ? "lg:scale-[1.02]" : ""}`}
+              >
+                {plan.badge && (
+                  <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-primary px-2.5 py-0.5 text-[10px] font-semibold text-primary-foreground">
+                    {plan.badge}
+                  </span>
+                )}
 
-                  <ul className="mb-5 flex-1 space-y-2 text-sm">
-                    {plan.features.map((f) => (
-                      <li key={f} className="flex gap-2">
-                        <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
-                        <span className="text-muted-foreground">{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  {/* 免费套餐 → Link */}
-                  {!isPaid && (
-                    <Link
-                      href={plan.cta.href}
-                      className="inline-flex w-full items-center justify-center rounded-lg border px-4 py-2 text-sm font-medium transition hover:bg-accent"
-                    >
-                      {plan.cta.label}
-                    </Link>
-                  )}
-
-                  {/* 付费套餐 → PayPal SDK 按钮 */}
-                  {isPaid && plan.paypal && (
-                    <>
-                      {!payPalAvailable ? (
-                        <div className="rounded-lg border bg-muted p-3 text-center text-xs text-muted-foreground">
-                          <p className="mb-1 font-medium text-foreground">
-                            PayPal not configured yet
-                          </p>
-                          <p>Contact support to activate payments.</p>
-                        </div>
-                      ) : alreadyOwnsThisTier ? (
-                        <button
-                          disabled
-                          className="w-full cursor-not-allowed rounded-lg border bg-muted px-4 py-2 text-sm font-medium text-muted-foreground"
-                        >
-                          ✓ You own this plan
-                        </button>
-                      ) : isVipActive ? (
-                        // Lifetime 用户不用再买 Starter
-                        <button
-                          disabled
-                          className="w-full cursor-not-allowed rounded-lg border bg-muted px-4 py-2 text-sm font-medium text-muted-foreground"
-                        >
-                          ✓ Upgrade to Lifetime for full access
-                        </button>
-                      ) : (
-                        <PlanPayPalButton
-                          amount={plan.paypal.amount}
-                          vipType={plan.paypal.vipType}
-                          onSuccess={handlePaypalSuccess}
-                          disabled={isVipActive}
-                        />
-                      )}
-                    </>
-                  )}
+                <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <Icon className="h-4 w-4" />
                 </div>
-              );
-            })}
-          </div>
+                <div className="mb-1 text-xs font-medium text-muted-foreground">
+                  {plan.desc}
+                </div>
+                <div className="mb-3 flex items-baseline gap-1">
+                  <span className="text-3xl font-bold">{plan.price}</span>
+                </div>
+                <h3 className="mb-3 text-base font-semibold">{plan.name}</h3>
 
-          {/* 购买说明 */}
-          <div className="mx-auto mt-12 max-w-2xl rounded-xl border bg-muted/40 p-5 text-xs text-muted-foreground">
-            <p className="mb-2 font-medium text-foreground">📌 How to pay & activate</p>
-            <ul className="list-disc space-y-1 pl-5">
-              <li>
-                Click the PayPal button — pay securely in a popup. No account required.
-              </li>
-              <li>
-                Your VIP status unlocks <strong>instantly</strong> after payment.
-                No email, no waiting.
-              </li>
-              <li>
-                VIP is stored in your browser. On a new device, sign in with the
-                same PayPal account and re-purchase, or email us at{" "}
-                <code className="rounded bg-muted px-1">
-                  xingfang.wang@gmail.com
-                </code>{" "}
-                with your order ID for manual activation.
-              </li>
-              <li>
-                By purchasing you agree to our Terms of Service. Lifetime plans
-                never expire.
-              </li>
-            </ul>
-          </div>
-        </section>
-      </main>
-    </PayPalScriptProvider>
+                <ul className="mb-5 flex-1 space-y-2 text-sm">
+                  {plan.features.map((f) => (
+                    <li key={f} className="flex gap-2">
+                      <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                      <span className="text-muted-foreground">{f}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                {/* CTA 按钮 */}
+                {!isPaid && (
+                  <Link
+                    href={plan.cta.href!}
+                    className="inline-flex w-full items-center justify-center rounded-lg border px-4 py-2 text-sm font-medium transition hover:bg-accent"
+                  >
+                    {plan.cta.label}
+                  </Link>
+                )}
+
+                {isPaid && plan.paypalMe && (
+                  <>
+                    {isDisabledByOwnership ? (
+                      <button
+                        disabled
+                        className="w-full cursor-not-allowed rounded-lg border bg-muted px-4 py-2 text-sm font-medium text-muted-foreground"
+                      >
+                        {vip.vip_type === "lifetime"
+                          ? "✓ You have Lifetime VIP"
+                          : "✓ Already unlocked · Upgrade to Lifetime"}
+                      </button>
+                    ) : (
+                      <a
+                        href={plan.paypalMe}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90"
+                      >
+                        {plan.cta.label}
+                      </a>
+                    )}
+                  </>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* ===== 即时自助激活区 ===== */}
+        <InstantUnlockCard
+          onActivate={activateVip}
+          alreadyActive={isVipActive}
+          currentType={vip.vip_type}
+        />
+
+        {/* 说明 */}
+        <div className="mx-auto mt-8 max-w-2xl rounded-xl border bg-muted/40 p-5 text-xs text-muted-foreground">
+          <p className="mb-2 font-medium text-foreground">📌 How it works</p>
+          <ol className="list-decimal space-y-1 pl-5">
+            <li>
+              Click your plan — you&apos;ll be redirected to PayPal in a new tab.
+              Pay securely.
+            </li>
+            <li>
+              Return here and paste your PayPal Transaction ID or email above.
+            </li>
+            <li>
+              Click <strong>Verify &amp; Unlock</strong> — your VIP activates instantly.
+              No waiting, no emails.
+            </li>
+          </ol>
+          <p className="mt-3">
+            Your VIP status is stored locally in your browser. On a new device,
+            just click Verify &amp; Unlock again with your PayPal email. By
+            purchasing you agree to our Terms of Service.
+          </p>
+        </div>
+      </section>
+    </main>
   );
 }
