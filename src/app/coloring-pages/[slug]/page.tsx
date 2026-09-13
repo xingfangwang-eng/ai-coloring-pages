@@ -413,7 +413,27 @@ function ListingCard({ slug }: { slug: string }) {
   const audience = (audienceMatch?.[1] ?? "kids") as keyof typeof LEVEL_BADGES;
   const levelBadge = LEVEL_BADGES[audience];
 
-  const localSvg = getHomepageSvg(slug);
+  // 骨架屏底图 —— 永远存在 1 帧，图片加载完立即覆盖
+  const skeletonBg = (
+    <>
+      <div
+        className="absolute inset-0"
+        aria-hidden="true"
+        style={{ background: "linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)" }}
+      />
+      <div
+        className="absolute inset-0 animate-pulse opacity-50"
+        aria-hidden="true"
+        style={{
+          backgroundImage:
+            "repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.4) 10px, rgba(255,255,255,0.4) 20px)",
+        }}
+      />
+    </>
+  );
+
+  // getHomepageSvg 100% 保证返回 data URL（零 Coming Soon 政策）
+  const dataUrl = getHomepageSvg(slug);
 
   return (
     <Link
@@ -421,51 +441,25 @@ function ListingCard({ slug }: { slug: string }) {
       className="group flex flex-col overflow-hidden rounded-xl border bg-card transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:border-primary/30"
     >
       <div className="relative overflow-hidden bg-white" style={{ aspectRatio: "1 / 1" }}>
-        {/* 骨架屏底图 */}
-        <div
-          className="absolute inset-0"
-          aria-hidden="true"
-          style={{ background: "linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)" }}
+        {skeletonBg}
+        {/* 图片加载完覆盖骨架屏；data URL 瞬间生效 */}
+        <img
+          src={dataUrl}
+          alt={`${title} coloring page`}
+          loading="lazy"
+          decoding="async"
+          className="relative h-full w-full transition-transform duration-300 group-hover:scale-[1.02]"
         />
-        {/* 骨架脉冲条纹 */}
-        <div
-          className="absolute inset-0 animate-pulse opacity-50"
-          aria-hidden="true"
-          style={{
-            backgroundImage:
-              "repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.4) 10px, rgba(255,255,255,0.4) 20px)",
-          }}
-        />
-
-        {localSvg ? (
-          <img
-            src={localSvg}
-            alt={`${title} coloring page`}
-            loading="lazy"
-            decoding="async"
-            className="relative h-full w-full transition-transform duration-300 group-hover:scale-[1.02]"
-          />
-        ) : (
-          <div className="relative flex h-full w-full items-center justify-center">
-            <div
-              className="flex h-3/4 w-3/4 items-center justify-center rounded-lg"
-              style={{ border: "2px dashed #d1d5db" }}
-            >
-              <span className="text-[11px] font-medium uppercase tracking-wider text-gray-300">
-                Coming Soon
-              </span>
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* 底部信息条：标题 + 等级标签 */}
+      {/* 底部信息条：标题 + 等级标签 + PDF 引导 */}
       <div className="border-t bg-card/80 px-3 py-2">
         <p className="truncate text-xs font-medium">{title}</p>
-        <div className="mt-1">
+        <div className="mt-1 flex items-center gap-1.5">
           <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${levelBadge.bg} ${levelBadge.fg}`}>
             {levelBadge.label}
           </span>
+          <span className="text-[10px] text-muted-foreground">· US Letter PDF</span>
         </div>
       </div>
     </Link>

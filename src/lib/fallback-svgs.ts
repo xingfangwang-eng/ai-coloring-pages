@@ -458,29 +458,32 @@ export const HOMEPAGE_SVGS: SvgEntry[] = [
 /* ==================== 导出 API ==================== */
 
 /**
- * 根据 slug 智能选择 SVG 来源
+ * 根据 slug 智能选择 SVG 来源 —— 保证永远返回有效 data URL
  *
  * slug 格式：{style}-{subject}-{audience}
- *   cute-cat-for-kids   → 从 HOMEPAGE_SVGS 卡通库取 cat 的简笔画
- *   intricate-cat-for-adults → generateMandalaSVG(hash("cat")) 生成参数化曼陀罗
+ *   cute-cat-for-kids   → 卡通简笔 SVG（HOMEPAGE_SVGS 库）
+ *   intricate-cat-for-adults / 任何未知 slug → 通用参数化曼陀罗
+ *
+ * 【零 Coming Soon 政策】：任何 slug 都能生成独一无二的曼陀罗
  */
-export function getHomepageSvg(slug: string): string | null {
+export function getHomepageSvg(slug: string): string {
   const pureSlug = slug
     .replace(/^(cute|simple|detailed|kawaii|easy|intricate)-/, "")
     .replace(/-for-(toddlers|preschoolers|kids|adults)$/, "");
   const audienceMatch = slug.match(/-for-(toddlers|preschoolers|kids|adults)$/);
   const audience = audienceMatch?.[1] ?? "for-kids";
 
-  // 1. for-adults → 参数化曼陀罗
+  // 1. for-adults → 参数化曼陀罗（精细 1.5px 线条）
   if (audience === "adults") {
     return svgToDataUrl(generateMandalaSVG(pureSlug));
   }
 
-  // 2. for-kids / for-preschoolers / for-toddlers → 卡通简笔 SVG
+  // 2. for-kids / for-preschoolers / for-toddlers → 卡通简笔 SVG（粗 3px 线条）
   const found = HOMEPAGE_SVGS.find((entry) => entry.slug === pureSlug);
   if (found) return found.dataUrl;
 
-  // 3. 兜底：没找到的 subject（space-rocket, princess-castle 等）→ 也走曼陀罗但 seed 不同
+  // 3. 兜底：任何未覆盖的 subject（space-rocket, princess-castle, halloween-witch...）
+  //    → 通用曼陀罗，seed=hash(pureSlug) 保证每个主题独一无二
   return svgToDataUrl(generateMandalaSVG(pureSlug));
 }
 
