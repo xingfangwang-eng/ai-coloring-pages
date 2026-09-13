@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { AuthProvider } from "@/components/auth/session-provider";
 import { SiteNavbar } from "@/components/site-navbar";
 import { SiteFooter } from "@/components/site-footer";
 import { Toaster } from "@/components/ui/sonner";
@@ -34,12 +33,10 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <AuthProvider>
-          <SiteNavbar />
-          {children}
-          <SiteFooter />
-          <Toaster position="top-center" richColors closeButton />
-        </AuthProvider>
+        <SiteNavbar />
+        {children}
+        <SiteFooter />
+        <Toaster position="top-center" richColors closeButton />
       </body>
     </html>
   );

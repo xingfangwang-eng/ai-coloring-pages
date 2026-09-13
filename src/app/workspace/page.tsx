@@ -1,10 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
 import {
-  Cloud,
-  CloudOff,
   CreditCard,
   Crown,
   Sparkles,
@@ -23,12 +20,6 @@ import { HistoryGrid } from "@/components/workspace/history-grid";
 import { PolishingLoader } from "@/components/workspace/polishing-loader";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { shortId } from "@/lib/utils";
-import {
-  cloudSyncAvailable,
-  deleteCloudHistory,
-  listCloudHistory,
-  saveCloudHistory,
-} from "@/lib/cloud-history";
 import type {
   Complexity,
   GenerateApiError,
@@ -43,7 +34,7 @@ const VIP_STORAGE_KEY = "coloringpages:vip:v1";
 
 type VipStatus = {
   vip_status: "active" | "inactive";
-  vip_type: "starter" | "lifetime" | null;
+  vip_type: "starter" | "lifetime" | "credits" | null;
   purchased_at: number | null;
 };
 
@@ -57,96 +48,34 @@ const ANONYMOUS_QUOTA: UserQuota = {
 };
 
 export default function WorkspacePage() {
-  const { data: session, status: sessionStatus } = useSession();
-
   // 受控状态
   const [prompt, setPrompt] = useState("");
   const [complexity, setComplexity] = useState<Complexity>("kids");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<GenerateApiSuccess | null>(null);
-  const [cloudLoading, setCloudLoading] = useState(false);
   const [quota, setQuota] = useState<UserQuota>(ANONYMOUS_QUOTA);
   const [mounted, setMounted] = useState(false);
 
   // VIP 状态（纯前端 localStorage）
-  const [vip, setVip] = useState<VipStatus | null>(null);
+  const [vip] = useState<VipStatus | null>(null);
 
-  // 本地历史记录
+  // 本地历史记录 —— 无登录架构下的唯一数据源
   const [history, setHistory] = useLocalStorage<HistoryItem[]>(HISTORY_KEY, []);
-  // 云端历史
-  const [cloudHistory, setCloudHistory] = useState<HistoryItem[]>([]);
 
   // mount 后才允许渲染真实数据 —— 彻底消除 hydration mismatch
   useEffect(() => {
     setMounted(true);
-    // 同步读取 VIP 状态
-    try {
-      const raw = window.localStorage.getItem(VIP_STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as VipStatus;
-        if (parsed.vip_status === "active") setVip(parsed);
-      }
-    } catch {
-      // ignore
-    }
   }, []);
 
-  const mergedHistory =
-    cloudHistory.length > 0 ? cloudHistory : history;
-  const cloudEnabled = Boolean(
-    session?.user?.id && cloudSyncAvailable()
-  );
-
-  // =============== 登录后拉云端历史 ===============
-  useEffect(() => {
-    if (!session?.user?.id || !cloudSyncAvailable()) {
-      setCloudHistory([]);
-      setQuota(ANONYMOUS_QUOTA);
-      return;
-    }
-
-    let cancelled = false;
-    setCloudLoading(true);
-    listCloudHistory(session.user.id)
-      .then((rows) => {
-        if (!cancelled) setCloudHistory(rows);
-      })
-      .catch((e) => {
-        console.warn("Failed to load cloud history:", e);
-      })
-      .finally(() => {
-        if (!cancelled) setCloudLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [session?.user?.id]);
-
-  /** 本地推入 + 云端双写 */
+  /** 本地推入历史 */
   const pushHistory = useCallback(
-    async (item: HistoryItem, imageData: string) => {
+    async (item: HistoryItem) => {
       setHistory((prev) => {
         const filtered = prev.filter((h) => h.seed !== item.seed);
         return [item, ...filtered].slice(0, HISTORY_MAX);
       });
-
-      if (cloudEnabled && session?.user?.id) {
-        const ok = await saveCloudHistory(session.user.id, {
-          prompt: item.prompt,
-          complexity: item.complexity,
-          imageData,
-          seed: item.seed,
-        });
-        if (ok) {
-          setCloudHistory((prev) => {
-            const filtered = prev.filter((h) => h.seed !== item.seed);
-            return [item, ...filtered];
-          });
-        }
-      }
     },
-    [cloudEnabled, session?.user?.id, setHistory]
+    [setHistory]
   );
 
   // =============== 生成逻辑 ===============
@@ -192,11 +121,11 @@ export default function WorkspacePage() {
           imageUrl: data.imageUrl,
           seed: data.seed,
           createdAt: Date.now(),
-          source: cloudEnabled ? "cloud" : "local",
+          source: "local",
           planTag: data.quota.plan,
           hasWatermark: false,
         };
-        await pushHistory(item, data.imageUrl);
+        await pushHistory(item);
       } catch (err) {
         toast.error(
           err instanceof Error ? err.message : "Request failed. Please try again later."
@@ -205,7 +134,7 @@ export default function WorkspacePage() {
         setLoading(false);
       }
     },
-    [cloudEnabled, pushHistory]
+    [pushHistory]
   );
 
   // =============== 历史操作 ===============
@@ -235,15 +164,12 @@ export default function WorkspacePage() {
   const handleDeleteHistory = useCallback(
     async (id: string) => {
       setHistory((prev) => prev.filter((h) => h.id !== id));
-      setCloudHistory((prev) => prev.filter((h) => h.id !== id));
-      if (cloudEnabled) await deleteCloudHistory(id);
     },
-    [cloudEnabled, setHistory]
+    [setHistory]
   );
 
   const handleClearHistory = useCallback(() => {
     setHistory([]);
-    setCloudHistory([]);
     toast.success("History cleared");
   }, [setHistory]);
 
@@ -266,11 +192,6 @@ export default function WorkspacePage() {
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-base font-semibold">🎨 Studio</h1>
           <QuotaBadge quota={quota} vipActive={vip?.vip_status === "active"} vipType={vip?.vip_type} />
-          <CloudStatusBadge
-            sessionStatus={sessionStatus}
-            cloudEnabled={cloudEnabled}
-            cloudLoading={cloudLoading}
-          />
         </div>
 
         <div className="grid gap-6 lg:grid-cols-5">
@@ -313,19 +234,12 @@ export default function WorkspacePage() {
         <section className="space-y-3">
           <h2 className="text-base font-semibold">
             📚 History
-            {cloudEnabled && (
-              <span className="ml-2 text-xs font-normal text-muted-foreground">
-                (Cloud + local, newest first)
-              </span>
-            )}
-            {!cloudEnabled && (
-              <span className="ml-2 text-xs font-normal text-muted-foreground">
-                (Local only. Sign in to sync to the cloud.)
-              </span>
-            )}
+            <span className="ml-2 text-xs font-normal text-muted-foreground">
+              (Local only · browser storage)
+            </span>
           </h2>
           <HistoryGrid
-            items={mergedHistory}
+            items={history}
             onSelect={handleSelectHistory}
             onDelete={handleDeleteHistory}
             onClearAll={handleClearHistory}
@@ -345,14 +259,14 @@ function QuotaBadge({
 }: {
   quota: UserQuota;
   vipActive?: boolean;
-  vipType?: "starter" | "lifetime" | null;
+  vipType?: VipStatus["vip_type"] | null;
 }) {
   // VIP 优先级最高 —— 覆盖一切服务端 quota
   if (vipActive) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full border bg-amber-500/10 px-2 py-0.5 text-[11px] text-amber-700 ring-1 ring-amber-500/30">
         <Crown className="size-3" />
-        VIP · {vipType === "lifetime" ? "Lifetime" : "Starter"}
+        VIP · {vipType === "lifetime" ? "Lifetime" : vipType === "credits" ? "Credits" : "Starter"}
         <span className="text-amber-600">· Unlimited</span>
       </span>
     );
@@ -378,57 +292,6 @@ function QuotaBadge({
           <span className="font-mono">{quota.creditsRemaining}</span>
         </>
       )}
-    </span>
-  );
-}
-
-/** 云端同步状态徽章 */
-function CloudStatusBadge({
-  sessionStatus,
-  cloudEnabled,
-  cloudLoading,
-}: {
-  sessionStatus: string;
-  cloudEnabled: boolean;
-  cloudLoading: boolean;
-}) {
-  if (!cloudSyncAvailable()) {
-    return (
-      <span
-        className="inline-flex items-center gap-1 rounded-full border bg-muted/60 px-2 py-0.5 text-[11px] text-muted-foreground"
-        title="Supabase not configured; local history only"
-      >
-        <CloudOff className="size-3" />
-        Local only
-      </span>
-    );
-  }
-
-  if (sessionStatus === "loading") {
-    return (
-      <span className="inline-flex items-center gap-1 rounded-full border bg-muted/60 px-2 py-0.5 text-[11px] text-muted-foreground">
-        <Cloud className="size-3" />
-        Checking…
-      </span>
-    );
-  }
-
-  if (cloudEnabled) {
-    return (
-      <span className="inline-flex items-center gap-1 rounded-full border bg-green-500/10 px-2 py-0.5 text-[11px] text-green-700">
-        <Cloud className="size-3" />
-        {cloudLoading ? "Syncing…" : "Cloud synced"}
-      </span>
-    );
-  }
-
-  return (
-    <span
-      className="inline-flex items-center gap-1 rounded-full border bg-muted/60 px-2 py-0.5 text-[11px] text-muted-foreground"
-      title="Sign in with GitHub to enable cloud sync"
-    >
-      <CloudOff className="size-3" />
-      Not signed in
     </span>
   );
 }

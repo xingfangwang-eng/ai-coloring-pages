@@ -1,12 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useSession } from "next-auth/react";
 import { Brush, Menu, X } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { LoginButton } from "@/components/auth/login-button";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
@@ -16,7 +14,6 @@ const NAV_ITEMS = [
 ];
 
 export function SiteNavbar() {
-  const { status } = useSession();
   const [open, setOpen] = useState(false);
 
   return (
@@ -39,19 +36,10 @@ export function SiteNavbar() {
               {item.label}
             </Link>
           ))}
-          {status === "authenticated" && (
-            <Link
-              href="/profile"
-              className="text-sm text-muted-foreground transition hover:text-foreground"
-            >
-              Account
-            </Link>
-          )}
         </nav>
 
-        {/* Right: login + mobile toggle */}
+        {/* Right: mobile toggle only */}
         <div className="flex items-center gap-2">
-          <LoginButton />
           <Button
             variant="ghost"
             size="icon"
@@ -82,15 +70,6 @@ export function SiteNavbar() {
               {item.label}
             </Link>
           ))}
-          {status === "authenticated" && (
-            <Link
-              href="/profile"
-              onClick={() => setOpen(false)}
-              className="rounded px-2 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
-            >
-              Account
-            </Link>
-          )}
         </nav>
       </div>
     </header>
