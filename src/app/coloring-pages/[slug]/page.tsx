@@ -150,9 +150,12 @@ export async function generateMetadata(
  * ============================================================ */
 
 export default async function ColoringPageDetail(
-  { params }: { params: Promise<{ slug: string }> }
+  { params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ page?: string }> }
 ) {
   const { slug } = await params;
+  const { page: pageStr } = await searchParams;
+  const page = Math.max(1, parseInt(pageStr ?? "1") || 1);
+
   const parsed = parseSlug(slug);
 
   // 1️⃣ Audience slug（for-kids / for-adults / ...）→ 聚合列表页
@@ -162,9 +165,9 @@ export default async function ColoringPageDetail(
   // 3️⃣ Filter keyword（for-halloween / for-christmas / ...）→ 聚合列表页
   const filterKw = !parsed && !audience && !category ? getFilterKeywordFromSlug(slug) : null;
 
-  if (audience) return <AudienceListing audienceSlug={audience.slug} audienceLabel={audience.label} />;
-  if (category) return <CategoryListing categorySlug={category} />;
-  if (filterKw) return <FilterListing keyword={filterKw} />;
+  if (audience) return <AudienceListing audienceSlug={audience.slug} audienceLabel={audience.label} page={page} />;
+  if (category) return <CategoryListing categorySlug={category} page={page} />;
+  if (filterKw) return <FilterListing keyword={filterKw} page={page} />;
 
   // 4️⃣ 都不是 → 404
   if (!parsed) notFound();
@@ -382,246 +385,274 @@ const CATEGORY_LABELS: Record<string, string> = {
   education: "Educational",
 };
 
-/** Audience 聚合页 —— 例如 /coloring-pages/for-kids 列出所有 for-kids 着色页 */
-function AudienceListing({ audienceSlug, audienceLabel }: { audienceSlug: string; audienceLabel: string }) {
-  const slugs = getAllUSColoringSlugs().filter((s) => s.endsWith(`-${audienceSlug}`));
-  const title = `Coloring Pages ${audienceLabel}`;
-  const canonical = `${BASE_URL}/coloring-pages/${audienceSlug}`;
+/* ============================================================
+ * ListingCard —— 统一卡片 + 骨架屏 + 懒加载
+ *   1. 优先本地 SVG（data URL，零延迟零请求）
+ *   2. 无本地 SVG → 优雅骨架屏占位 + 虚线描边，无 emoji 无黄板
+ *   3. 统一 loading="lazy" + decoding="async"
+ *   4. 点击直达详情页
+ * ============================================================ */
 
-  const faqs = [
-    { q: `Is it really free to print all these ${audienceLabel.toLowerCase()} coloring pages?`, a: `Yes — every coloring page on wangdadi.xyz is 100% free for personal, homeschooling, and classroom use. No sign-up, no email, no watermarks.` },
-    { q: `What paper size works best?`, a: `All pages are optimized for both US Letter (8.5 × 11 inches) and A4 paper. Both PDF export options are available on each page.` },
-    { q: `Can teachers print these for classroom use?`, a: `Absolutely — teachers, homeschoolers, and parents can print unlimited copies for educational use with zero restrictions.` },
-  ];
+function ListingCard({ slug }: { slug: string }) {
+  const title = slug
+    .replace(/^cute-|^simple-|^detailed-|^kawaii-|^easy-/g, "")
+    .replace(/-(for-toddlers|for-preschoolers|for-kids|for-adults)$/g, "")
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 
-  return (
-    <main className="flex-1">
-      <GeoSchema
-        pageUrl={canonical}
-        pageName={title}
-        pageDescription={`Browse all free printable coloring pages ${audienceLabel.toLowerCase()}. Clean black line art, no sign-up required.`}
-        faqs={faqs}
-        breadcrumbs={[
-          { name: "Home", item: `${BASE_URL}/` },
-          { name: "Coloring Pages", item: `${BASE_URL}/coloring-pages/${audienceSlug}` },
-        ]}
-      />
-
-      <nav aria-label="Breadcrumb" className="border-b bg-muted/30">
-        <div className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-3 text-sm text-muted-foreground">
-          <Link href="/" className="hover:text-primary">Home</Link>
-          <span>/</span>
-          <span className="text-foreground">{title}</span>
-        </div>
-      </nav>
-
-      <section className="mx-auto max-w-6xl px-4 py-12">
-        <h1 className="mb-3 text-4xl font-bold tracking-tight">{title}</h1>
-        <p className="mb-8 max-w-2xl text-muted-foreground">
-          Browse our full collection of {slugs.length} free printable coloring pages {audienceLabel.toLowerCase()}.
-          Bold clean outlines, US Letter & A4 PDF export, no sign-up required — perfect for home, school, and homeschooling.
-        </p>
-
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-          {slugs.map((slug) => (
-            <Link key={slug} href={`/coloring-pages/${slug}`} className="group block overflow-hidden rounded-xl border bg-card transition hover:-translate-y-0.5 hover:shadow-lg">
-              <div className="relative overflow-hidden rounded-xl bg-white" style={{ aspectRatio: "1 / 1" }}>
-                <ListingCardImage slug={slug} />
-              </div>
-              <div className="border-t bg-card px-3 py-2">
-                <p className="truncate text-xs font-medium">
-                  {slug.replace(/^cute-|^simple-|^detailed-|^kawaii-|^easy-/g, "").replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
-                </p>
-              </div>
-            </Link>
-          ))}
-        </div>
-
-        {faqs.length > 0 && (
-          <section className="mt-16">
-            <h2 className="mb-6 text-2xl font-bold">Frequently Asked Questions</h2>
-            <div className="space-y-3">
-              {faqs.map((faq, i) => (
-                <details key={i} className="group rounded-xl border bg-card open:shadow-sm">
-                  <summary className="cursor-pointer select-none list-none px-5 py-4 font-medium">{faq.q}</summary>
-                  <div className="border-t px-5 py-4 text-sm text-muted-foreground"><span className="mr-2 font-medium text-green-700">A:</span>{faq.a}</div>
-                </details>
-              ))}
-            </div>
-          </section>
-        )}
-      </section>
-    </main>
-  );
-}
-
-/** Category 聚合页 —— 例如 /coloring-pages/animals 列出所有动物着色页 */
-function CategoryListing({ categorySlug }: { categorySlug: string }) {
-  const styleSlug = "cute";
-  const audienceSlug = "for-kids";
-  const subjects = SUBJECTS.filter((s) => s.category === categorySlug);
-  const slugs = subjects.map((s) => `${styleSlug}-${s.slug}-${audienceSlug}`);
-  const label = CATEGORY_LABELS[categorySlug] ?? categorySlug;
-  const title = `${label} Coloring Pages`;
-  const canonical = `${BASE_URL}/coloring-pages/${categorySlug}`;
-
-  const faqs = [
-    { q: `Is it free to print all these ${label.toLowerCase()} coloring pages?`, a: `Yes — every page is 100% free for personal, classroom, and homeschooling use with zero registration and zero watermarks.` },
-    { q: `What age group are these best for?`, a: `These ${label.toLowerCase()} pages use bold thick outlines designed for kids ages 4–8, but older kids and adults enjoy them too. Toddlers can use the 'for Toddlers' variant for even simpler shapes.` },
-  ];
-
-  return (
-    <main className="flex-1">
-      <GeoSchema
-        pageUrl={canonical}
-        pageName={title}
-        pageDescription={`Browse all ${label.toLowerCase()} coloring pages — ${slugs.length} free printable black line art pages, US Letter & A4 PDF, no sign-up.`}
-        faqs={faqs}
-        breadcrumbs={[
-          { name: "Home", item: `${BASE_URL}/` },
-          { name: "Coloring Pages", item: `${BASE_URL}/coloring-pages/${categorySlug}` },
-        ]}
-      />
-
-      <nav aria-label="Breadcrumb" className="border-b bg-muted/30">
-        <div className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-3 text-sm text-muted-foreground">
-          <Link href="/" className="hover:text-primary">Home</Link>
-          <span>/</span>
-          <span className="text-foreground">{title}</span>
-        </div>
-      </nav>
-
-      <section className="mx-auto max-w-6xl px-4 py-12">
-        <h1 className="mb-3 text-4xl font-bold tracking-tight">{title}</h1>
-        <p className="mb-8 max-w-2xl text-muted-foreground">
-          Browse {slugs.length} free printable {label.toLowerCase()} coloring pages.
-          Clean black line art, bold outlines, US Letter & A4 PDF export — no sign-up required.
-        </p>
-
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-          {slugs.map((slug) => (
-            <Link key={slug} href={`/coloring-pages/${slug}`} className="group block overflow-hidden rounded-xl border bg-card transition hover:-translate-y-0.5 hover:shadow-lg">
-              <div className="relative overflow-hidden rounded-xl bg-white" style={{ aspectRatio: "1 / 1" }}>
-                <ListingCardImage slug={slug} />
-              </div>
-              <div className="border-t bg-card px-3 py-2">
-                <p className="truncate text-xs font-medium">
-                  {slug.replace(/^cute-|^simple-|^detailed-|^kawaii-|^easy-/g, "").replace(/-(for-toddlers|for-preschoolers|for-kids|for-adults)$/g, "").replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
-                </p>
-              </div>
-            </Link>
-          ))}
-        </div>
-
-        {faqs.length > 0 && (
-          <section className="mt-16">
-            <h2 className="mb-6 text-2xl font-bold">Frequently Asked Questions</h2>
-            <div className="space-y-3">
-              {faqs.map((faq, i) => (
-                <details key={i} className="group rounded-xl border bg-card open:shadow-sm">
-                  <summary className="cursor-pointer select-none list-none px-5 py-4 font-medium">{faq.q}</summary>
-                  <div className="border-t px-5 py-4 text-sm text-muted-foreground"><span className="mr-2 font-medium text-green-700">A:</span>{faq.a}</div>
-                </details>
-              ))}
-            </div>
-          </section>
-        )}
-      </section>
-    </main>
-  );
-}
-
-/**
- * ListingCardImage —— 聚合列表页的卡片图片
- * 优先用本地 SVG（零延迟、零外部请求），找不到才走 Pollinations
- */
-function ListingCardImage({ slug }: { slug: string }) {
   const localSvg = getHomepageSvg(slug);
-  if (localSvg) {
-    return (
-      <img src={localSvg} alt="" loading="lazy" className="h-full w-full" />
-    );
-  }
-  // 没有本地 SVG 兜底 —— 展示一个简洁占位（避免并发请求）
+
   return (
-    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-indigo-50 to-purple-50">
-      <span className="text-3xl text-indigo-200">🎨</span>
+    <Link
+      href={`/coloring-pages/${slug}`}
+      className="group block overflow-hidden rounded-xl border bg-card transition hover:-translate-y-0.5 hover:shadow-lg"
+    >
+      <div className="relative overflow-hidden rounded-xl bg-white" style={{ aspectRatio: "1 / 1" }}>
+        {/* 骨架屏底图 —— 永远存在（即使图片瞬间加载，骨架屏也只存在 1 帧） */}
+        <div
+          className="absolute inset-0"
+          aria-hidden="true"
+          style={{ background: "linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)" }}
+        />
+        {/* 骨架脉冲条纹 */}
+        <div
+          className="absolute inset-0 animate-pulse opacity-50"
+          aria-hidden="true"
+          style={{
+            backgroundImage:
+              "repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.4) 10px, rgba(255,255,255,0.4) 20px)",
+          }}
+        />
+
+        {localSvg ? (
+          <img
+            src={localSvg}
+            alt={`${title} coloring page`}
+            loading="lazy"
+            decoding="async"
+            className="relative h-full w-full"
+          />
+        ) : (
+          <div className="relative flex h-full w-full items-center justify-center">
+            <div
+              className="flex h-3/4 w-3/4 items-center justify-center rounded-lg"
+              style={{ border: "2px dashed #d1d5db" }}
+            >
+              <span className="text-[11px] font-medium uppercase tracking-wider text-gray-300">
+                Coming Soon
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+      <div className="border-t bg-card px-3 py-2">
+        <p className="truncate text-xs font-medium">{title}</p>
+      </div>
+    </Link>
+  );
+}
+
+/** 分页控制器 —— URL query 驱动（无 JS） */
+function Pagination({
+  page,
+  totalPages,
+  buildUrl,
+}: {
+  page: number;
+  totalPages: number;
+  buildUrl: (p: number) => string;
+}) {
+  if (totalPages <= 1) return null;
+
+  const pages: (number | "…")[] = [];
+  if (totalPages <= 7) {
+    for (let i = 1; i <= totalPages; i++) pages.push(i);
+  } else {
+    pages.push(1);
+    if (page > 3) pages.push("…");
+    for (let i = Math.max(2, page - 2); i <= Math.min(totalPages - 1, page + 2); i++) pages.push(i);
+    if (page < totalPages - 2) pages.push("…");
+    pages.push(totalPages);
+  }
+
+  return (
+    <nav aria-label="Pagination" className="mt-10 flex items-center justify-center gap-1.5">
+      {page > 1 ? (
+        <Link href={buildUrl(page - 1)} className="flex h-9 items-center gap-1 rounded-lg border bg-card px-3 text-sm font-medium transition hover:border-primary/40 hover:shadow-sm">← Prev</Link>
+      ) : (
+        <span className="flex h-9 items-center gap-1 rounded-lg border bg-muted/50 px-3 text-sm text-muted-foreground">← Prev</span>
+      )}
+
+      <div className="flex gap-1">
+        {pages.map((p, i) =>
+          p === "…" ? (
+            <span key={`e${i}`} className="flex h-9 w-9 items-center justify-center text-muted-foreground">…</span>
+          ) : (
+            <Link
+              key={p}
+              href={buildUrl(p)}
+              aria-current={p === page ? "page" : undefined}
+              className={`flex h-9 w-9 items-center justify-center rounded-lg border text-sm font-medium transition ${
+                p === page
+                  ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                  : "bg-card hover:border-primary/40 hover:shadow-sm"
+              }`}
+            >
+              {p}
+            </Link>
+          )
+        )}
+      </div>
+
+      {page < totalPages ? (
+        <Link href={buildUrl(page + 1)} className="flex h-9 items-center gap-1 rounded-lg border bg-card px-3 text-sm font-medium transition hover:border-primary/40 hover:shadow-sm">Next →</Link>
+      ) : (
+        <span className="flex h-9 items-center gap-1 rounded-lg border bg-muted/50 px-3 text-sm text-muted-foreground">Next →</span>
+      )}
+    </nav>
+  );
+}
+
+/** 统一网格 + 分页切片 —— PAGE_SIZE=12 杜绝高并发 */
+function renderPaginatedGrid(slugs: string[], page: number) {
+  const PAGE_SIZE = 12;
+  const totalPages = Math.max(1, Math.ceil(slugs.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const start = (safePage - 1) * PAGE_SIZE;
+  const pagedSlugs = slugs.slice(start, start + PAGE_SIZE);
+
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+      {pagedSlugs.map((slug) => (
+        <ListingCard key={slug} slug={slug} />
+      ))}
     </div>
   );
 }
 
-/** Filter 聚合页 —— 例如 /coloring-pages/for-halloween 列出所有 halloween 主题着色页 */
-function FilterListing({ keyword }: { keyword: string }) {
-  const label = keyword.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-  const styleSlug = "cute";
-  const audienceSlug = "for-kids";
-  const subjects = SUBJECTS.filter((s) => s.slug.includes(keyword));
-  const slugs = subjects.map((s) => `${styleSlug}-${s.slug}-${audienceSlug}`);
-  const slug = `for-${keyword}`;
-  const title = `${label} Coloring Pages`;
-  const canonical = `${BASE_URL}/coloring-pages/${slug}`;
+/* ============ AudienceListing（for-kids / for-adults / ...） ============ */
+function AudienceListing({
+  audienceSlug,
+  audienceLabel,
+  page,
+}: {
+  audienceSlug: string;
+  audienceLabel: string;
+  page: number;
+}) {
+  const slugs = getAllUSColoringSlugs().filter((s) => s.endsWith(`-${audienceSlug}`));
+  const title = `Coloring Pages ${audienceLabel}`;
+  const canonical = `${BASE_URL}/coloring-pages/${audienceSlug}`;
+  const totalPages = Math.max(1, Math.ceil(slugs.length / 12));
 
   const faqs = [
-    { q: `Is it free to print all these ${label.toLowerCase()} coloring pages?`, a: `Yes — every page is 100% free for personal, classroom, and homeschooling use with zero registration and zero watermarks. Download as US Letter or A4 PDF.` },
-    { q: `What age group are these best for?`, a: `These ${label.toLowerCase()} pages use bold thick outlines designed for kids ages 4–8, but older kids and adults enjoy them too.` },
-    { q: `Can I use these for classroom or party activities?`, a: `Absolutely — print unlimited copies for classroom activities, party favors, or homeschooling. No restrictions, ever.` },
+    { q: `Is it really free to print all these ${audienceLabel.toLowerCase()} coloring pages?`, a: `Yes — every coloring page on wangdadi.xyz is 100% free for personal, classroom, and homeschooling use. No sign-up, no watermarks.` },
+    { q: `What paper size works best?`, a: `All pages are optimized for both US Letter (8.5 × 11 inches) and A4 paper. Both PDF export options available.` },
+    { q: `Can teachers print these for classroom use?`, a: `Absolutely — teachers, homeschoolers, and parents can print unlimited copies with zero restrictions.` },
   ];
+
+  const buildUrl = (p: number) =>
+    p === 1 ? canonical : `${canonical}?page=${p}`;
 
   return (
     <main className="flex-1">
-      <GeoSchema
-        pageUrl={canonical}
-        pageName={title}
-        pageDescription={`Browse ${slugs.length} free printable ${label.toLowerCase()} coloring pages. Clean black line art, US Letter & A4 PDF export, no sign-up required. Perfect for parties and classroom activities.`}
-        faqs={faqs}
-        breadcrumbs={[
-          { name: "Home", item: `${BASE_URL}/` },
-          { name: "Coloring Pages", item: `${BASE_URL}/coloring-pages/${slug}` },
-        ]}
-      />
-
+      <GeoSchema pageUrl={canonical} pageName={title} pageDescription={`Browse free printable coloring pages ${audienceLabel.toLowerCase()}. Clean black line art, no sign-up.`} faqs={faqs} breadcrumbs={[{ name: "Home", item: `${BASE_URL}/` }, { name: "Coloring Pages", item: canonical }]} />
       <nav aria-label="Breadcrumb" className="border-b bg-muted/30">
         <div className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-3 text-sm text-muted-foreground">
-          <Link href="/" className="hover:text-primary">Home</Link>
-          <span>/</span>
-          <span className="text-foreground">{title}</span>
+          <Link href="/" className="hover:text-primary">Home</Link><span>/</span><span className="text-foreground">{title}</span>
         </div>
       </nav>
-
       <section className="mx-auto max-w-6xl px-4 py-12">
         <h1 className="mb-3 text-4xl font-bold tracking-tight">{title}</h1>
-        <p className="mb-8 max-w-2xl text-muted-foreground">
-          Browse {slugs.length} free printable {label.toLowerCase()} coloring pages.
-          Clean black line art, bold outlines, US Letter & A4 PDF export — no sign-up required.
-          Perfect for parties, classroom activities, and creative fun.
-        </p>
-
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-          {slugs.map((slug) => (
-            <Link key={slug} href={`/coloring-pages/${slug}`} className="group block overflow-hidden rounded-xl border bg-card transition hover:-translate-y-0.5 hover:shadow-lg">
-              <div className="relative overflow-hidden rounded-xl bg-white" style={{ aspectRatio: "1 / 1" }}>
-                <ListingCardImage slug={slug} />
-              </div>
-              <div className="border-t bg-card px-3 py-2">
-                <p className="truncate text-xs font-medium">
-                  {slug.replace(/^cute-|^simple-|^detailed-|^kawaii-|^easy-/g, "").replace(/-(for-toddlers|for-preschoolers|for-kids|for-adults)$/g, "").replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
-                </p>
-              </div>
-            </Link>
-          ))}
-        </div>
-
+        <p className="mb-4 max-w-2xl text-muted-foreground">Browse {slugs.length} free printable coloring pages {audienceLabel.toLowerCase()}. Bold clean outlines, US Letter & A4 PDF — no sign-up required.</p>
+        {renderPaginatedGrid(slugs, page)}
+        <Pagination page={Math.min(page, totalPages)} totalPages={totalPages} buildUrl={buildUrl} />
         {faqs.length > 0 && (
           <section className="mt-16">
             <h2 className="mb-6 text-2xl font-bold">Frequently Asked Questions</h2>
-            <div className="space-y-3">
-              {faqs.map((faq, i) => (
-                <details key={i} className="group rounded-xl border bg-card open:shadow-sm">
-                  <summary className="cursor-pointer select-none list-none px-5 py-4 font-medium">{faq.q}</summary>
-                  <div className="border-t px-5 py-4 text-sm text-muted-foreground"><span className="mr-2 font-medium text-green-700">A:</span>{faq.a}</div>
-                </details>
-              ))}
-            </div>
+            <div className="space-y-3">{faqs.map((faq, i) => (<details key={i} className="group rounded-xl border bg-card open:shadow-sm"><summary className="cursor-pointer select-none list-none px-5 py-4 font-medium">{faq.q}</summary><div className="border-t px-5 py-4 text-sm text-muted-foreground"><span className="mr-2 font-medium text-green-700">A:</span>{faq.a}</div></details>))}</div>
+          </section>
+        )}
+      </section>
+    </main>
+  );
+}
+
+/* ============ CategoryListing（animals / holidays / ...） ============ */
+function CategoryListing({ categorySlug, page }: { categorySlug: string; page: number }) {
+  const subjects = SUBJECTS.filter((s) => s.category === categorySlug);
+  const slugs = subjects.map((s) => `cute-${s.slug}-for-kids`);
+  const label = CATEGORY_LABELS[categorySlug] ?? categorySlug;
+  const title = `${label} Coloring Pages`;
+  const canonical = `${BASE_URL}/coloring-pages/${categorySlug}`;
+  const totalPages = Math.max(1, Math.ceil(slugs.length / 12));
+
+  const faqs = [
+    { q: `Is it free to print all these ${label.toLowerCase()} coloring pages?`, a: `Yes — every page is 100% free with zero registration and zero watermarks.` },
+    { q: `What age group are these best for?`, a: `These ${label.toLowerCase()} pages use bold thick outlines designed for kids ages 4–8.` },
+  ];
+
+  const buildUrl = (p: number) => p === 1 ? canonical : `${canonical}?page=${p}`;
+
+  return (
+    <main className="flex-1">
+      <GeoSchema pageUrl={canonical} pageName={title} pageDescription={`Browse ${slugs.length} free printable ${label.toLowerCase()} coloring pages. US Letter & A4 PDF, no sign-up.`} faqs={faqs} breadcrumbs={[{ name: "Home", item: `${BASE_URL}/` }, { name: "Coloring Pages", item: canonical }]} />
+      <nav aria-label="Breadcrumb" className="border-b bg-muted/30">
+        <div className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-3 text-sm text-muted-foreground">
+          <Link href="/" className="hover:text-primary">Home</Link><span>/</span><span className="text-foreground">{title}</span>
+        </div>
+      </nav>
+      <section className="mx-auto max-w-6xl px-4 py-12">
+        <h1 className="mb-3 text-4xl font-bold tracking-tight">{title}</h1>
+        <p className="mb-4 max-w-2xl text-muted-foreground">Browse {slugs.length} free printable {label.toLowerCase()} coloring pages. Clean black line art — no sign-up required.</p>
+        {renderPaginatedGrid(slugs, page)}
+        <Pagination page={Math.min(page, totalPages)} totalPages={totalPages} buildUrl={buildUrl} />
+        {faqs.length > 0 && (
+          <section className="mt-16">
+            <h2 className="mb-6 text-2xl font-bold">Frequently Asked Questions</h2>
+            <div className="space-y-3">{faqs.map((faq, i) => (<details key={i} className="group rounded-xl border bg-card open:shadow-sm"><summary className="cursor-pointer select-none list-none px-5 py-4 font-medium">{faq.q}</summary><div className="border-t px-5 py-4 text-sm text-muted-foreground"><span className="mr-2 font-medium text-green-700">A:</span>{faq.a}</div></details>))}</div>
+          </section>
+        )}
+      </section>
+    </main>
+  );
+}
+
+/* ============ FilterListing（for-halloween / for-christmas / ...） ============ */
+function FilterListing({ keyword, page }: { keyword: string; page: number }) {
+  const label = keyword.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  const subjects = SUBJECTS.filter((s) => s.slug.includes(keyword));
+  const slugs = subjects.map((s) => `cute-${s.slug}-for-kids`);
+  const slug = `for-${keyword}`;
+  const title = `${label} Coloring Pages`;
+  const canonical = `${BASE_URL}/coloring-pages/${slug}`;
+  const totalPages = Math.max(1, Math.ceil(slugs.length / 12));
+
+  const faqs = [
+    { q: `Is it free to print all these ${label.toLowerCase()} coloring pages?`, a: `Yes — every page is 100% free with zero registration and zero watermarks. Download as US Letter or A4 PDF.` },
+    { q: `What age group are these best for?`, a: `These ${label.toLowerCase()} pages use bold thick outlines designed for kids ages 4–8, but adults enjoy them too.` },
+    { q: `Can I use these for party/classroom activities?`, a: `Absolutely — print unlimited copies for classroom activities, party favors, or homeschooling. No restrictions, ever.` },
+  ];
+
+  const buildUrl = (p: number) => p === 1 ? canonical : `${canonical}?page=${p}`;
+
+  return (
+    <main className="flex-1">
+      <GeoSchema pageUrl={canonical} pageName={title} pageDescription={`Browse ${slugs.length} free printable ${label.toLowerCase()} coloring pages. US Letter & A4 PDF, no sign-up.`} faqs={faqs} breadcrumbs={[{ name: "Home", item: `${BASE_URL}/` }, { name: "Coloring Pages", item: canonical }]} />
+      <nav aria-label="Breadcrumb" className="border-b bg-muted/30">
+        <div className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-3 text-sm text-muted-foreground">
+          <Link href="/" className="hover:text-primary">Home</Link><span>/</span><span className="text-foreground">{title}</span>
+        </div>
+      </nav>
+      <section className="mx-auto max-w-6xl px-4 py-12">
+        <h1 className="mb-3 text-4xl font-bold tracking-tight">{title}</h1>
+        <p className="mb-4 max-w-2xl text-muted-foreground">Browse {slugs.length} free printable {label.toLowerCase()} coloring pages. Clean black line art — no sign-up required.</p>
+        {renderPaginatedGrid(slugs, page)}
+        <Pagination page={Math.min(page, totalPages)} totalPages={totalPages} buildUrl={buildUrl} />
+        {faqs.length > 0 && (
+          <section className="mt-16">
+            <h2 className="mb-6 text-2xl font-bold">Frequently Asked Questions</h2>
+            <div className="space-y-3">{faqs.map((faq, i) => (<details key={i} className="group rounded-xl border bg-card open:shadow-sm"><summary className="cursor-pointer select-none list-none px-5 py-4 font-medium">{faq.q}</summary><div className="border-t px-5 py-4 text-sm text-muted-foreground"><span className="mr-2 font-medium text-green-700">A:</span>{faq.a}</div></details>))}</div>
           </section>
         )}
       </section>
