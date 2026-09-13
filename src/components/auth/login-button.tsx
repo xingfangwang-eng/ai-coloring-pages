@@ -123,13 +123,38 @@ export function LoginButton() {
     );
   }
 
-  // ---- 未登录：根据 provider 数量决定按钮形态 ----
+  // ---- 未登录 ----
+  // providers 列表从 /api/auth/providers 动态拉取（依赖服务端环境变量）
+  // 在 Vercel 上服务端已配置 GITHUB_CLIENT_ID/SECRET → providers 里会有 github
+  // 注意：客户端**不应该**负责"是否配置"的判断，那是服务端的事。
+  // 这里 providers.length === 0 可能只是 fetch 还没完成 —— 给一个可点击的 fallback
+
+  // providers 还没到 → 给一个可点击的 "Sign in" 按钮（Dialog 里按 providers 渲染，
+  // 如果 providers 还是空的就显示 "Loading..." 提示）
   if (providers.length === 0) {
-    // 还没配任何 provider —— 给出占位提示
     return (
-      <Button variant="outline" size="sm" disabled>
-        Sign in (not configured)
-      </Button>
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button size="sm" className="gap-2">
+            Sign In
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Sign in to AI Coloring Pages</DialogTitle>
+            <DialogDescription>
+              Choose how to sign in. Your history syncs automatically.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2 pt-2">
+            {/* providers 还在拉取中 —— 显示 loading 按钮作为占位 */}
+            <Button variant="outline" disabled className="w-full justify-center gap-2">
+              <Loader2 className="size-4 animate-spin" />
+              Loading sign-in options...
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     );
   }
 
