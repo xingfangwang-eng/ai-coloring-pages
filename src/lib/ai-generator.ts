@@ -1,20 +1,21 @@
 /**
- * AI 图片生成服务 —— Pollinations.ai (Turbo)
+ * AI 图片生成服务 —— Pollinations.ai (Flux)
  *
- * 单一引擎：Pollinations.ai model=turbo
+ * 单一引擎：Pollinations.ai model=flux
  *   - 完全免费、无限量、无 Key
+ *   - Flux 比 Turbo 线条更锐利清晰
  *   - 支持确定性 seed → 同一 seed + prompt = 同一张图
- *   - 用于：①Studio 工作台实时生成；②pSEO 页面静态产出；③首页实时生成
  *
- * Prompt 双轨制（用户实测验证 100% 稳定）：
- *   - for-adults → 精细 Zentangle / Mandala 线稿（纯白底、空心几何花纹）
- *   - for-kids/toddlers/preschoolers → 粗线条卡通简笔（大块镂空、纯白底）
+ * Magic Prompt —— 用户实测验证 100% 稳定生成纯线稿
+ *   "coloring book page of a {{SUBJECT}}, blank uncolored coloring sheet,
+ *    black line art outline, isolated on stark pure white paper,
+ *    no color, no fill, zero shading, no background scenery"
  *
- * Prompt 绝对约束：
- *   - 主体必须 Isolated（孤立在纯白背景上）
- *   - 所有内部区域必须 Hollow（空心白底，留给用户填色）
- *   - 严禁任何背景建筑/天空/城市/灰度阴影/实心黑块
- *   - 严禁否定词（no X / without X）—— 会反向激活权重
+ *   极度克制 + 所有负面约束打满 —— 绝不让 AI 上色、画背景、加阴影
+ *
+ * 防 CDN 缓存策略：
+ *   seed 强制 + 777777 偏移量 —— 砸烂 Pollinations CDN 历史彩色图缓存
+ *   （之前 seed=123456 生成过 red fox 水彩图，CDN 会缓存；偏移后用全新 seed）
  */
 
 import type { GenerationRequest, GenerationResult } from "@/types";
@@ -25,11 +26,11 @@ const POLLINATIONS_BASE = "https://image.pollinations.ai/prompt";
 export const DEFAULT_WIDTH = 1024;
 export const DEFAULT_HEIGHT = 1024;
 
-/** 强制使用 turbo —— 用户实测最稳定生成线稿 */
-const POLLINATIONS_MODEL = "turbo";
+/** 强制使用 flux —— 线条比 turbo 更锐利清晰 */
+const POLLINATIONS_MODEL = "flux";
 
-/** seed 强制偏移量 —— 砸烂 Pollinations 历史 CDN 缓存 */
-const SEED_CACHE_BUST_OFFSET = 88888;
+/** seed 强制偏移量 —— 砸烂 Pollinations 历史 CDN 彩色图缓存 */
+const SEED_CACHE_BUST_OFFSET = 777_777;
 
 /**
  * Prompt 模板表 —— 双轨制
@@ -48,7 +49,7 @@ const SEED_CACHE_BUST_OFFSET = 88888;
 type Audience = "kids" | "adults";
 
 /**
- * sanitizeSubject —— 关键词"去色净化"安全网
+ * getSanitizedPromptSubject —— 关键词"去色净化"安全网
  *
  * 问题：SUBJECTS 数据里的 prompt 字段是完整自然语言描述句：
  *   "a clever red fox with bushy tail in autumn woods"
@@ -60,10 +61,13 @@ type Audience = "kids" | "adults";
  * 只保留纯净的主体名词（fox / dinosaur / elephant）。
  *
  * 两层净化：
- *   1. bannedWords 黑名单正则 —— 颜色词、环境词、拟人化形容词
+ *   1. BANNED_WORDS 黑名单正则 —— 颜色词、环境词、拟人化形容词
  *   2. 兜底 —— 如果净化后为空（全是禁用词），返回 "animal"
  *
  * 同时支持 slug 输入（如 "cute-fox-for-kids"）—— 会先拆 slug 再净化。
+ *
+ * @param input —— 可以是完整 prompt 句子，也可以是 slug 格式
+ * @returns       —— 纯净主体名词，可直接填入 Magic Prompt
  */
 const BANNED_WORDS = [
   // 颜色词 —— 触发 AI 上色
@@ -96,7 +100,7 @@ const BANNED_WORDS = [
   "stripes", "spots", "pattern", "details", "detailed",
   "fur", "feathers", "whiskers", "tail", "ears", "trunk", "mane",
   "beak", "teeth", "claws", "wings", "shell", "fin", "flippers",
-  "spots", "striped", "spotted", "patterned", "decorated",
+  "striped", "spotted", "patterned", "decorated",
 
   // 动作/姿势词 —— 让 AI 画复杂姿势（增加背景）
   "sitting", "standing", "jumping", "swimming", "flying", "walking", "running",
@@ -105,15 +109,15 @@ const BANNED_WORDS = [
   "stretching", "perched", "nestling", "grazing", "galloping", "trotting",
 ];
 
-function sanitizeSubject(input: string): string {
+export function getSanitizedPromptSubject(input: string): string {
   // 1. 先处理 slug 格式（如 "cute-fox-for-kids"）→ 拆成单词
-  //    同时剥离停用词（a/an/the/with/in/on...）
+  //    同时剥离停用词（a/an/the/with/in/on...）+ 清除标点
   let subject = input
     .replace(/for-(kids|toddlers|preschoolers|adults)/gi, "")
     .replace(/(cute|simple|detailed|easy|kawaii|intricate)-/gi, "")
     .replace(/\b(a|an|the|with|on|in|at|by|and|or|near|around|over|under|through)\b/gi, " ")
     .replace(/-/g, " ")
-    .replace(/[,.;!?'"()]/g, " ") // 清除标点！
+    .replace(/[,.;!?'"()]/g, " ")
     .trim();
 
   // 2. 正则剔除所有禁用词（大小写不敏感，完整单词匹配）
@@ -124,7 +128,7 @@ function sanitizeSubject(input: string): string {
   const words = subject
     .split(/\s+/)
     .filter((w) => w.length > 0)
-    .slice(-2); // 最多保留 2 个核心名词（如 "sea turtle"、"rock hopper"）
+    .slice(-2);
 
   subject = words.join(" ");
 
@@ -143,18 +147,34 @@ const PROMPT_TEMPLATES: Record<Audience, string> = {
     "simple preschool coloring book page of a {{SUBJECT}}, bold clean outlines, hollow shapes, clip art, isolated on pure white background, no shading, no solid black, no background, uncolored sheet",
 };
 
-/** 构造 Pollinations 的完整 URL
+/**
+ * Magic Prompt —— 用户实测 100% 稳定
  *
- * @param params.prompt   —— 纯净主体词（如 "cat"、"superhero"）
- * @param params.audience —— "kids" (默认) | "adults"，决定用哪个 prompt 模板
+ * 极度克制 + 所有负面约束打满：
+ *   - "coloring book page of a {{SUBJECT}}" —— 只说是什么，不说怎么画
+ *   - "black line art outline" —— 明确是线稿而非插画
+ *   - "isolated on stark pure white paper" —— 纯白底 + "stark" 强调
+ *   - "no color, no fill, zero shading, no background scenery" —— 四道保险
+ */
+const MAGIC_PROMPT =
+  "coloring book page of a {{SUBJECT}}, blank uncolored coloring sheet, black line art outline, isolated on stark pure white paper, no color, no fill, zero shading, no background scenery";
+
+/** 构造 Pollinations 的完整 URL —— 用 Magic Prompt
+ *
+ * 无论调用方传什么 audience（kids / adults），现在**统一用 Magic Prompt**。
+ * 原因：双轨 prompt（Zentangle vs Kids）在实测中反而不稳定 ——
+ * Zentangle 模板有时让 AI 过度复杂化，Kids 模板有时让 AI 画卡通上色。
+ * Magic Prompt 的"极度克制 + 纯负面约束"才是真正 100% 稳定的公式。
+ *
+ * @param params.prompt   —— 纯净主体词（如 "cat"、"superhero"、"fox"）
  * @param params.width    —— 默认 1024
  * @param params.height   —— 默认 1024
- * @param params.model    —— 强制 "turbo"，忽略任何传入值
+ * @param params.model    —— 强制 "flux"，忽略任何传入值
  * @param params.seed     —— 确定性种子（1 ~ 2^31-1）
  */
 export function buildPollinationsUrl(params: {
   prompt: string;
-  audience?: Audience;
+  audience?: Audience; // 保留兼容，但现在不区分
   width?: number;
   height?: number;
   model?: string;
@@ -162,40 +182,42 @@ export function buildPollinationsUrl(params: {
 }): string {
   const {
     prompt: rawPrompt,
-    audience = "kids",
     width = DEFAULT_WIDTH,
     height = DEFAULT_HEIGHT,
     seed,
   } = params;
 
-  // 先净化 —— 洗掉颜色词、环境词、拟人化形容词，只留核心名词
-  const pureSubject = sanitizeSubject(rawPrompt);
+  // Step 1: 净化主体词（洗掉颜色词、环境词、拟人化形容词）
+  const cleanSubject = getSanitizedPromptSubject(rawPrompt);
 
-  // 按 audience 选模板 → 套纯净主体词 → 编码
-  const finalPrompt = PROMPT_TEMPLATES[audience].replace(
-    /\{\{SUBJECT\}\}/g,
-    pureSubject
-  );
-  const encoded = encodeURIComponent(finalPrompt);
+  // Step 2: 用 Magic Prompt —— 极度克制 + 所有负面约束
+  const finalPrompt = MAGIC_PROMPT.replace(/\{\{SUBJECT\}\}/g, cleanSubject);
+  const magicPrompt = encodeURIComponent(finalPrompt);
+
+  // Step 3: 强制用 flux + seed 偏移 777777 防 CDN 缓存
+  const finalSeed =
+    seed !== undefined
+      ? ((seed + SEED_CACHE_BUST_OFFSET) % 2_147_483_646) + 1
+      : undefined;
 
   const usp = new URLSearchParams({
     width: String(width),
     height: String(height),
-    model: POLLINATIONS_MODEL,
+    model: POLLINATIONS_MODEL, // "flux"
     nologo: "true",
   });
 
-  if (seed !== undefined) {
-    const bustedSeed = ((seed + SEED_CACHE_BUST_OFFSET) % 2_147_483_646) + 1;
-    usp.set("seed", String(bustedSeed));
+  if (finalSeed !== undefined) {
+    usp.set("seed", String(finalSeed));
   }
 
-  return `${POLLINATIONS_BASE}/${encoded}?${usp.toString()}`;
+  return `${POLLINATIONS_BASE}/${magicPrompt}?${usp.toString()}`;
 }
 
 /** 保留兼容 —— 给需要手动构建完整 prompt 文本的场景 */
-export function wrapLineartPrompt(rawPrompt: string, audience: Audience = "kids"): string {
-  return PROMPT_TEMPLATES[audience].replace(/\{\{SUBJECT\}\}/g, rawPrompt);
+export function wrapLineartPrompt(rawPrompt: string): string {
+  const cleanSubject = getSanitizedPromptSubject(rawPrompt);
+  return MAGIC_PROMPT.replace(/\{\{SUBJECT\}\}/g, cleanSubject);
 }
 
 /** 生成随机 seed（Pollinations seed 范围 1 ~ 2^31-1） */
@@ -247,7 +269,7 @@ async function fetchFromPollinations(
   const base64 = buffer.toString("base64");
   const mime = resp.headers.get("content-type") || "image/png";
 
-  const enhancedPrompt = wrapLineartPrompt(pureSubject, audience);
+  const enhancedPrompt = wrapLineartPrompt(pureSubject);
 
   return {
     imageUrl: toDataUrl(base64, mime),
