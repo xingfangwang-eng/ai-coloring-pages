@@ -6,16 +6,22 @@
  *   - Flux 比 Turbo 线条更锐利清晰
  *   - 支持确定性 seed → 同一 seed + prompt = 同一张图
  *
- * Magic Prompt —— 用户实测验证 100% 稳定生成纯线稿
- *   "coloring book page of a {{SUBJECT}}, blank uncolored coloring sheet,
- *    black line art outline, isolated on stark pure white paper,
- *    no color, no fill, zero shading, no background scenery"
+ * Magic Prompt —— 极简正向版（实测最稳定，避免白熊效应）
+ *   "coloring book page of a {{SUBJECT}}, simple black outline,
+ *    line art, stark white paper background"
  *
- *   极度克制 + 所有负面约束打满 —— 绝不让 AI 上色、画背景、加阴影
+ *   教训：之前加入 "no moon, no night sky" 等负向词触发白熊效应，
+ *   AI 反而画出满月和黑夜背景。新策略：只说"要什么"，不说"不要什么"。
+ *
+ *   节日强场景词中性化映射：
+ *     halloween-pumpkin → carved pumpkin
+ *     halloween-ghost → cartoon ghost
+ *     christmas-santa → santa claus character
+ *     ...避开 halloween/night 的夜景联想链
  *
  * 防 CDN 缓存策略：
- *   seed 强制 + 777777 偏移量 —— 砸烂 Pollinations CDN 历史彩色图缓存
- *   （之前 seed=123456 生成过 red fox 水彩图，CDN 会缓存；偏移后用全新 seed）
+ *   seed 强制 + SEED_CACHE_BUST_OFFSET 偏移量（当前 123456）
+ *   每次改 MAGIC_PROMPT 必须同步改偏移量！
  */
 
 import type { GenerationRequest, GenerationResult } from "@/types";
@@ -41,10 +47,10 @@ export const DEFAULT_HEIGHT = 1024;
 /** 强制使用 flux —— 线条比 turbo 更锐利清晰 */
 const POLLINATIONS_MODEL = "flux";
 
-/** seed 强制偏移量 —— 砸烂 Pollinations 历史 CDN 彩色图/黑圈缓存
- * 从 777777 → 666666 —— 再次改变 offset 强制刷新
- * （之前缓存了 Halloween 南瓜带满月黑圈的 seed，偏移砸烂它） */
-const SEED_CACHE_BUST_OFFSET = 666_666;
+/** seed 强制偏移量 —— 砸烂 Pollinations 历史 CDN 缓存
+ * 每次改 MAGIC_PROMPT 必须同步改这个偏移量！
+ * 当前：123456 —— 砸烂满月/黑夜缓存（之前的 Halloween 月亮是白熊效应反噬） */
+const SEED_CACHE_BUST_OFFSET = 123_456;
 
 /**
  * Prompt 模板表 —— 双轨制
@@ -127,14 +133,29 @@ export function getSanitizedPromptSubject(input: string): string {
   // Step 0: 如果输入本身就是 slug 格式（如 "cute-fox-for-kids"），
   // 先拆 slug → 此时已经是干净的 "fox" 了，直接返回
   if (/^[a-z]+-[a-z]+(-[a-z]+)*$/i.test(input)) {
-    // 移除 style 前缀 + audience 后缀 → 得到纯 slug
     let slugOnly = input
       .replace(/^(cute|simple|detailed|easy|kawaii|intricate)-/i, "")
       .replace(
         /-(for-(kids|toddlers|preschoolers|adults))$/i,
         ""
-      )
-      .replace(/-/g, " ");
+      );
+
+    // 🔥 节日强场景词中性化映射 —— 避开触发夜景/氛围的大词
+    // halloween → night/moon/spooky 联想链极强，christmas-reindeer 自带 "snowy night sky"
+    const FESTIVE_NEUTRAL_MAP: Record<string, string> = {
+      "halloween-pumpkin": "carved pumpkin",      // 雕刻南瓜灯（去掉 halloween 的 night 联想）
+      "halloween-ghost": "cartoon ghost",          // 卡通幽灵（去掉 spooky/haunted）
+      "halloween-witch": "witch character",         // 单体女巫形象（去掉 cauldron/broom 场景）
+      "christmas-santa": "santa claus character",   // 单体圣诞老人（去掉 sleigh/reindeer/tree）
+      "christmas-reindeer": "reindeer character",   // 单体驯鹿（去掉 snowy night sky）
+      "christmas-tree": "decorated tree",           // 装饰树（去掉 christmas 的场景联想）
+      "thanksgiving-turkey": "cartoon turkey",      // 卡通火鸡（去掉 fall leaves/pilgrim）
+    };
+    if (FESTIVE_NEUTRAL_MAP[slugOnly]) {
+      return FESTIVE_NEUTRAL_MAP[slugOnly];
+    }
+
+    slugOnly = slugOnly.replace(/-/g, " ");
     if (slugOnly && slugOnly.length >= 2) return slugOnly;
     return "animal";
   }
@@ -189,22 +210,19 @@ const PROMPT_TEMPLATES: Record<Audience, string> = {
 };
 
 /**
- * Magic Prompt —— 用户实测 100% 稳定
+ * Magic Prompt —— 极简版（彻底删除白熊效应否定词）
  *
- * 极度克制 + 所有负面约束打满：
- *   - "coloring book page of a single {{SUBJECT}}" —— single 强调只有一个主体
- *   - "isolated on completely plain pure white paper" —— completely plain 强化纯白底
- *   - "no moon, no circle, no circular frame, no round border, no vignette, no night sky"
- *     → 消灭万圣节/太空/夜晚主题容易触发的"满月黑圈"、"圆形画框"、"晕影"
- *   - "clean black line art outline only" —— only 强调只有线稿
- *   - "empty uncolored white fill" —— 内部必须白（不是填色）
- *   - "zero shading" —— 彻底消灭阴影
+ * 实测教训："no moon, no circle, no night sky" 等带具体物体的否定词会触发白熊效应，
+ * AI 反而在画面中画出满月、黑夜等元素！
  *
- * 每改一次 Magic Prompt 必须同步改 SEED_CACHE_BUST_OFFSET
- * 砸烂 Pollinations CDN 上旧 prompt + 旧 seed 组合的缓存
+ * 新策略：只说"要什么"（纯线稿 + 纯白背景），不说"不要什么"。
+ * 用正向描述锚定：simple black outline / line art / stark white paper background
+ * 让 AI 自然生成纯净线稿，避免负面词反噬。
+ *
+ * 每改一次 Magic Prompt 必须同步改 SEED_CACHE_BUST_OFFSET！
  */
 const MAGIC_PROMPT =
-  "coloring book page of a single {{SUBJECT}}, isolated on completely plain pure white paper, clean black line art outline only, empty uncolored white fill, no moon, no circle, no circular frame, no round border, no vignette, no night sky, zero shading, no background scenery, no solid black";
+  "coloring book page of a {{SUBJECT}}, simple black outline, line art, stark white paper background";
 
 /** 构造 Pollinations 的完整 URL —— 用 Magic Prompt
  *
