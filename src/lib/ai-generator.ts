@@ -41,8 +41,10 @@ export const DEFAULT_HEIGHT = 1024;
 /** 强制使用 flux —— 线条比 turbo 更锐利清晰 */
 const POLLINATIONS_MODEL = "flux";
 
-/** seed 强制偏移量 —— 砸烂 Pollinations 历史 CDN 彩色图缓存 */
-const SEED_CACHE_BUST_OFFSET = 777_777;
+/** seed 强制偏移量 —— 砸烂 Pollinations 历史 CDN 彩色图/黑圈缓存
+ * 从 777777 → 666666 —— 再次改变 offset 强制刷新
+ * （之前缓存了 Halloween 南瓜带满月黑圈的 seed，偏移砸烂它） */
+const SEED_CACHE_BUST_OFFSET = 666_666;
 
 /**
  * Prompt 模板表 —— 双轨制
@@ -190,13 +192,19 @@ const PROMPT_TEMPLATES: Record<Audience, string> = {
  * Magic Prompt —— 用户实测 100% 稳定
  *
  * 极度克制 + 所有负面约束打满：
- *   - "coloring book page of a {{SUBJECT}}" —— 只说是什么，不说怎么画
- *   - "black line art outline" —— 明确是线稿而非插画
- *   - "isolated on stark pure white paper" —— 纯白底 + "stark" 强调
- *   - "no color, no fill, zero shading, no background scenery" —— 四道保险
+ *   - "coloring book page of a single {{SUBJECT}}" —— single 强调只有一个主体
+ *   - "isolated on completely plain pure white paper" —— completely plain 强化纯白底
+ *   - "no moon, no circle, no circular frame, no round border, no vignette, no night sky"
+ *     → 消灭万圣节/太空/夜晚主题容易触发的"满月黑圈"、"圆形画框"、"晕影"
+ *   - "clean black line art outline only" —— only 强调只有线稿
+ *   - "empty uncolored white fill" —— 内部必须白（不是填色）
+ *   - "zero shading" —— 彻底消灭阴影
+ *
+ * 每改一次 Magic Prompt 必须同步改 SEED_CACHE_BUST_OFFSET
+ * 砸烂 Pollinations CDN 上旧 prompt + 旧 seed 组合的缓存
  */
 const MAGIC_PROMPT =
-  "coloring book page of a {{SUBJECT}}, blank uncolored coloring sheet, black line art outline, isolated on stark pure white paper, no color, no fill, zero shading, no background scenery";
+  "coloring book page of a single {{SUBJECT}}, isolated on completely plain pure white paper, clean black line art outline only, empty uncolored white fill, no moon, no circle, no circular frame, no round border, no vignette, no night sky, zero shading, no background scenery, no solid black";
 
 /** 构造 Pollinations 的完整 URL —— 用 Magic Prompt
  *
