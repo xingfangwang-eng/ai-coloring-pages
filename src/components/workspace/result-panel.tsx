@@ -9,8 +9,6 @@ import type { GenerateApiSuccess } from "@/types";
 import {
   getCleanCroppedImageData,
   computePdfPlacement,
-  paperSizeObj,
-  PAPER_MM,
   DEFAULT_MARGIN_MM,
 } from "@/lib/pdf-utils";
 
@@ -83,33 +81,40 @@ export function ResultPanel({ result, onRetry }: ResultPanelProps) {
     }
   };
 
-  /** 导出 A4 PDF：先去水印 → 再等比缩放居中 */
+  /** 导出 A4 PDF：去水印 → 读页面尺寸 → 等比缩放写入 */
   const handleExportPdf = async () => {
     setExporting(true);
     try {
-      // 1. Canvas 物理切掉底部 4.5% 水印
+      // 1. Canvas 物理切掉底部 4.5% Pollinations 水印
       const cleanDataUrl = await getCleanCroppedImageData(result.imageUrl);
 
-      // 2. 读取裁切后图片的真实尺寸（不再是 1024×1024 正方形了）
+      // 2. 读取裁切后图片的真实像素尺寸（不再是 1024×1024 正方形了）
       const cleanSize = await getImageNaturalSize(cleanDataUrl);
 
       const { default: jsPDF } = await import("jspdf");
 
+      // 3. 先建 A4 PDF
       const pdf = new jsPDF({
         orientation: "portrait",
         unit: "mm",
-        format: PAPER_MM.a4, // [w, h] 数组 —— jsPDF 原生支持
+        format: "a4",
       });
 
-      // 3. 等比缩放 + 居中（fix: 正方形不再被撑成长方形）
-      const { drawW, drawH, x, y } = computePdfPlacement(
-        paperSizeObj(PAPER_MM.a4), // { w, h } 形式
+      // 4. 从 jsPDF 内部读取页面真实尺寸（权威来源）
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+
+      // 5. 等比缩放 + 居中（contain 算法）
+      const { printW, printH, x, y } = computePdfPlacement(
+        pageW,
+        pageH,
         DEFAULT_MARGIN_MM,
-        cleanSize
+        cleanSize.w,
+        cleanSize.h
       );
 
-      // 4. 写入干净的 PNG（Canvas 输出一定是 PNG）
-      pdf.addImage(cleanDataUrl, "PNG", x, y, drawW, drawH);
+      // 6. 写入干净的 PNG（物理去水印，contain 等比不变形）
+      pdf.addImage(cleanDataUrl, "PNG", x, y, printW, printH);
       pdf.save(`coloring-page-${result.seed}-A4.pdf`);
 
       toast.success("A4 PDF exported ✨");

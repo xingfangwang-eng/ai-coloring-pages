@@ -7,44 +7,15 @@
  * 2. 水印 —— Pollinations 右下角 logo 透传到 PDF
  *    → getCleanCroppedImageData 通过 Canvas 物理切除底部 4.5%
  *
- * 所有 PDF 导出调用方（result-panel、pseo-client-actions）都用这套工具。
+ * 调用顺序（重要）：
+ *   1. new jsPDF({ orientation, unit: "mm", format: [...] })  ← 先建 PDF
+ *   2. pdf.internal.pageSize.getWidth()/getHeight()         ← 读页面真实尺寸
+ *   3. computePdfPlacement(pageW, pageH, margin, imgW, imgH) ← 算绘制参数
+ *   4. pdf.addImage(cleanDataUrl, "PNG", x, y, printW, printH) ← 写入
  */
 
-/**
- * Paper dimensions for jsPDF
- * jsPDF format 参数接受 [w, h] 数组（单位由构造函数 unit 决定）
- */
-export const PAPER_MM = {
-  a4: [210, 297] as [number, number],
-  letter: [215.9, 279.4] as [number, number],
-};
-
-/** 以 { w, h } 形式读取纸张尺寸（给 computePdfPlacement 用） */
-export function paperSizeObj(
-  paperMm: [number, number]
-): { w: number; h: number } {
-  return { w: paperMm[0], h: paperMm[1] };
-}
-
-/** Default margin inside paper in millimeters */
-export const DEFAULT_MARGIN_MM = 12;
-
-/**
- * 等比缩放：让 src 图片完整显示在 maxW × maxH 框内（contain）
- * 返回 drawW/drawH（mm），调用方用它居中
- */
-export function fitInsideMm(
-  srcW: number,
-  srcH: number,
-  maxW: number,
-  maxH: number
-): { drawW: number; drawH: number } {
-  const ratio = Math.min(maxW / srcW, maxH / srcH);
-  return {
-    drawW: srcW * ratio,
-    drawH: srcH * ratio,
-  };
-}
+/** 15mm 安全打印页边距（比 12mm 更保险，不怕打印机裁剪） */
+export const DEFAULT_MARGIN_MM = 15;
 
 /**
  * 物理去水印 + 获取干净的图片 data URL
@@ -106,32 +77,51 @@ export async function getCleanCroppedImageData(
 }
 
 /**
- * 给定纸张 + 图片源 → 返回 PDF 中的绘制参数
+ * 计算图片在 PDF 页面上的绘制参数（等比缩放 + 居中，单位 mm）
  *
- * @param paper       —— 纸张尺寸 mm，如 PAPER_MM.a4
- * @param marginMm    —— 页边距 mm
- * @param naturalSize —— 原始图片像素尺寸 { w, h }
- * @returns             —— { drawW, drawH, x, y } 单位 mm，已居中 + 等比缩放
+ * 调用方先 new jsPDF()，然后直接从 pdf.internal.pageSize 读真实尺寸传入：
+ *   computePdfPlacement(pdf.internal.pageSize.getWidth(),
+ *                      pdf.internal.pageSize.getHeight(),
+ *                      DEFAULT_MARGIN_MM,
+ *                      img.naturalWidth, img.naturalHeight)
+ *
+ * 算法（contain，和你给的代码一致）：
+ *   先按页面宽度适配 → 如果高度超出 maxPrintHeight → 切到按高度适配
+ *   最后居中偏移
+ *
+ * @param pageW      —— 页面宽度 mm（pdf.internal.pageSize.getWidth()）
+ * @param pageH      —— 页面高度 mm（pdf.internal.pageSize.getHeight()）
+ * @param marginMm   —— 安全打印页边距 mm
+ * @param imgW       —— 干净图片（去水印后）的像素宽度
+ * @param imgH       —— 干净图片（去水印后）的像素高度
+ * @returns          —— { printW, printH, x, y } 单位 mm
  */
 export function computePdfPlacement(
-  paper: { w: number; h: number },
+  pageW: number,
+  pageH: number,
   marginMm: number,
-  naturalSize: { w: number; h: number }
-): { drawW: number; drawH: number; x: number; y: number } {
-  const maxW = paper.w - marginMm * 2;
-  const maxH = paper.h - marginMm * 2;
+  imgW: number,
+  imgH: number
+): { printW: number; printH: number; x: number; y: number } {
+  const maxPrintWidth = pageW - marginMm * 2;
+  const maxPrintHeight = pageH - marginMm * 2;
 
-  const { drawW, drawH } = fitInsideMm(
-    naturalSize.w,
-    naturalSize.h,
-    maxW,
-    maxH
-  );
+  // 图片比例（裁切后的真实比例，约 1:0.955）
+  const imgAspectRatio = imgW / imgH;
 
-  return {
-    drawW,
-    drawH,
-    x: (paper.w - drawW) / 2,
-    y: (paper.h - drawH) / 2,
-  };
+  // 先按页面宽度适配
+  let printW = maxPrintWidth;
+  let printH = printW / imgAspectRatio;
+
+  // 如果高度超出 → 切到按高度适配
+  if (printH > maxPrintHeight) {
+    printH = maxPrintHeight;
+    printW = printH * imgAspectRatio;
+  }
+
+  // 居中偏移
+  const x = (pageW - printW) / 2;
+  const y = (pageH - printH) / 2;
+
+  return { printW, printH, x, y };
 }

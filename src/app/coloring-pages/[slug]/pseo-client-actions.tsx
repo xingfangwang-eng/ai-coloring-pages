@@ -14,8 +14,6 @@ import { Download, FileDown, FileText, Loader2 } from "lucide-react";
 import {
   getCleanCroppedImageData,
   computePdfPlacement,
-  paperSizeObj,
-  PAPER_MM,
   DEFAULT_MARGIN_MM,
 } from "@/lib/pdf-utils";
 
@@ -87,35 +85,43 @@ export function PseoClientActions({ imageUrl, displayTitle, seed }: Props) {
   const handleExportPdf = async (size: PaperSize) => {
     setExporting(size);
     try {
-      // 1. 先通过 Canvas 切掉 Pollinations 底部水印（4.5%）
+      // 1. Canvas 物理切掉底部 4.5% Pollinations 水印
       const cleanDataUrl = await getCleanCroppedImageData(imageUrl);
 
-      // 2. 获取裁切后的图片自然尺寸（Canvas 加载完才知道）
+      // 2. 读取裁切后图片的真实像素尺寸
       const cleanSize = await getImageNaturalSize(cleanDataUrl);
 
       const { default: jsPDF } = await import("jspdf");
 
-      const paper = PAPER_SIZES[size];
-      const pdfPaperMm =
-        size === "us-letter" ? PAPER_MM.letter : PAPER_MM.a4;
+      // 3. 先建 PDF —— format 用 [w, h] 数组
+      const formatArr: [number, number] =
+        size === "us-letter" ? [215.9, 279.4] : [210, 297];
 
       const pdf = new jsPDF({
         orientation: "portrait",
         unit: "mm",
-        format: pdfPaperMm, // [w, h] 数组 —— jsPDF 原生支持
+        format: formatArr,
       });
 
-      // 3. 等比缩放 + 居中（修复正方形被拉伸变形）
-      const { drawW, drawH, x, y } = computePdfPlacement(
-        paperSizeObj(pdfPaperMm), // { w, h } 形式
+      // 4. 从 jsPDF 内部读取页面真实尺寸（权威来源，不用自己硬编码）
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+
+      // 5. 等比缩放 + 居中（contain 算法 —— 和用户给的完全一致）
+      const { printW, printH, x, y } = computePdfPlacement(
+        pageW,
+        pageH,
         DEFAULT_MARGIN_MM,
-        cleanSize
+        cleanSize.w,
+        cleanSize.h
       );
 
-      // 4. 用干净（去水印）的图写入 PDF
-      pdf.addImage(cleanDataUrl, "PNG", x, y, drawW, drawH);
+      // 6. 用干净（去水印）的 PNG 数据写入 PDF
+      pdf.addImage(cleanDataUrl, "PNG", x, y, printW, printH);
 
+      // 7. 保存
       const safeTitle = displayTitle.replace(/\s+/g, "-").toLowerCase();
+      const paper = PAPER_SIZES[size];
       pdf.save(`${safeTitle}-${paper.filename}.pdf`);
     } catch (err) {
       console.error("PDF export failed:", err);
