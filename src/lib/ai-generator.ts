@@ -19,6 +19,18 @@
  */
 
 import type { GenerationRequest, GenerationResult } from "@/types";
+import { SUBJECTS } from "@/lib/us-coloring-data";
+
+/**
+ * SUBJECT_SLUGS —— 白名单：所有在 SUBJECTS 里定义的主体 slug
+ *
+ * getSanitizedPromptSubject() 用它做白名单匹配 —— 比黑名单靠谱得多：
+ *   黑名单永远有遗漏（"bushy"、"rock"、"grin" 没在黑名单里）
+ *   白名单只接受肯定是主体名的词（SUBJECTS 里的 slug）
+ *
+ * 复合 slug 会被拆成空格形式匹配（"sea-turtle" → "sea turtle"）
+ */
+const SUBJECT_SLUGS: string[] = SUBJECTS.map((s) => s.slug.replace(/-/g, " "));
 
 const POLLINATIONS_BASE = "https://image.pollinations.ai/prompt";
 
@@ -110,34 +122,61 @@ const BANNED_WORDS = [
 ];
 
 export function getSanitizedPromptSubject(input: string): string {
-  // 1. 先处理 slug 格式（如 "cute-fox-for-kids"）→ 拆成单词
-  //    同时剥离停用词（a/an/the/with/in/on...）+ 清除标点
-  let subject = input
-    .replace(/for-(kids|toddlers|preschoolers|adults)/gi, "")
-    .replace(/(cute|simple|detailed|easy|kawaii|intricate)-/gi, "")
-    .replace(/\b(a|an|the|with|on|in|at|by|and|or|near|around|over|under|through)\b/gi, " ")
-    .replace(/-/g, " ")
-    .replace(/[,.;!?'"()]/g, " ")
-    .trim();
-
-  // 2. 正则剔除所有禁用词（大小写不敏感，完整单词匹配）
-  const bannedRegex = new RegExp(`\\b(${BANNED_WORDS.join("|")})\\b`, "gi");
-  subject = subject.replace(bannedRegex, "");
-
-  // 3. 清理多余空格 → 取最后 2 个词（通常是核心名词）
-  const words = subject
-    .split(/\s+/)
-    .filter((w) => w.length > 0)
-    .slice(-2);
-
-  subject = words.join(" ");
-
-  // 4. 终极兜底
-  if (!subject || subject.length < 2) {
+  // Step 0: 如果输入本身就是 slug 格式（如 "cute-fox-for-kids"），
+  // 先拆 slug → 此时已经是干净的 "fox" 了，直接返回
+  if (/^[a-z]+-[a-z]+(-[a-z]+)*$/i.test(input)) {
+    // 移除 style 前缀 + audience 后缀 → 得到纯 slug
+    let slugOnly = input
+      .replace(/^(cute|simple|detailed|easy|kawaii|intricate)-/i, "")
+      .replace(
+        /-(for-(kids|toddlers|preschoolers|adults))$/i,
+        ""
+      )
+      .replace(/-/g, " ");
+    if (slugOnly && slugOnly.length >= 2) return slugOnly;
     return "animal";
   }
 
-  return subject;
+  // Step 1: 完整句子 —— 先剥离停用词 + 标点
+  let subject = input
+    .replace(/for-(kids|toddlers|preschoolers|adults)/gi, "")
+    .replace(/(cute|simple|detailed|easy|kawaii|intricate)-/gi, "")
+    .replace(/\b(a|an|the|with|on|in|at|by|and|or|near|around|over|under|through|its|it|from|to|of|is|was|are|were|be|been|being|has|have|had|do|does|did|will|would|can|could|should|may|might|must|shall)\b/gi, " ")
+    .replace(/[,.;!?'"()]/g, " ")
+    .trim();
+
+  // Step 2: 正则剔除所有禁用词（大小写不敏感，完整单词匹配）
+  const bannedRegex = new RegExp(`\\b(${BANNED_WORDS.join("|")})\\b`, "gi");
+  subject = subject.replace(bannedRegex, "");
+
+  // Step 3: 清理多余空格 → 尝试找出"看起来像主体"的词
+  // 主体通常是：名词（不是形容词/动词/副词）
+  const words = subject.split(/\s+/).filter((w) => w.length >= 2);
+
+  if (words.length === 0) return "animal";
+  if (words.length === 1) return words[0];
+
+  // 启发式：第一个词（通常是冠词 a/an/the 去掉后）或组合最后两个词
+  // 但更靠谱的是——找白名单 SUBJECT_SLUGS 里的匹配
+  const lowerWords = words.map((w) => w.toLowerCase());
+  const lowerSubject = lowerWords.join(" ");
+
+  // 白名单匹配（按 SUBJECTS 里的 slug 精确匹配）
+  for (const slug of SUBJECT_SLUGS) {
+    if (lowerSubject.includes(slug)) {
+      // 如果找到了精确 slug，直接返回（复合 slug 如 "sea turtle" 也匹配）
+      if (slug.includes(" ")) return slug;
+      // 单 word slug 也可以匹配任意 word
+      for (const w of lowerWords) {
+        if (w === slug) return slug;
+      }
+    }
+  }
+
+  // 兜底：取最短的 noun-like 词（通常主体比形容词短）
+  // 或组合前 1-2 个词
+  const sortedByLen = [...lowerWords].sort((a, b) => a.length - b.length);
+  return sortedByLen[0]; // 最短的词通常是核心名词
 }
 
 const PROMPT_TEMPLATES: Record<Audience, string> = {
