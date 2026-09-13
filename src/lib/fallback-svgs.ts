@@ -156,108 +156,93 @@ export function generateMandalaSVG(subject: string): string {
 }
 
 /**
- * 在曼陀罗中心植入基于 subject 的几何多边形轮廓
- * 不同动物 → 不同几何形态（圆形/三角形/菱形/星形/椭圆）
+ * SUBJECT_ICONS —— 主题图标识别映射（仿 lucide 风格 SVG path）
+ *
+ * 覆盖所有 SUBJECTS 分类：animals / holidays / vehicles / fantasy / nature / food / characters / education
+ * 每个条目包含：
+ *   keywords: 匹配 subject slug 的关键字（includes 语义）
+ *   path: lucide 图标 SVG path（viewBox 0 0 24 24，stroke-width 2）
+ *   strokeW: 中心图标描边宽度（曼陀罗整体 1.2px，图标稍微粗一点 1.4-1.6 更醒目）
+ */
+const SUBJECT_ICONS: { keywords: string[]; path: string; strokeW: number }[] = [
+  { keywords: ["cat", "tiger", "leopard"], path: "M12 5c.78 0 1.5-.1 2.13-.29C15.07 4.35 16 3.34 16 2M12 5c-.78 0-1.5-.1-2.13-.29C8.93 4.35 8 3.34 8 2M12 5v7M12 12c-3.87 0-7 3.13-7 7 0 2.39.82 4.58 2.19 6H16.81c1.37-1.42 2.19-3.61 2.19-6 0-3.87-3.13-7-7-7Z", strokeW: 1.6 },
+  { keywords: ["dog", "wolf", "fox", "puppy"], path: "M10 5.172C10 3.782 8.423 2.679 6.5 3c-2.823.47-4.113 6.006-4 7 .08.703.725 1.517 1.656 1.517h1.163c.726 0 1.442-.685 1.672-1.658.26-.884.833-2.012 1.429-3.012A.5.5 0 0 1 10 5.172ZM14 5.172C14 3.782 15.577 2.679 17.5 3c2.823.47 4.113 6.006 4 7-.08.703-.725 1.517-1.656 1.517h-1.163c-.726 0-1.442-.685-1.672-1.658-.26-.884-.833-2.012-1.429-3.012A.5.5 0 0 0 14 5.172ZM5 21v-1.73A4 4 0 0 1 8.27 15h7.46A4 4 0 0 1 19 19.27V21M2 15h20", strokeW: 1.6 },
+  { keywords: ["butterfly"], path: "M12 12c-2 4-4 5-4 8 0-2 2-4 4-4s4 2 4 4c0-3-2-4-4-8ZM12 12c-2-4-4-5-4-8 0 2 2 4 4 4s-4 2-4 4ZM12 12c2-4 4-5 4-8 0 2-2 4-4 4s4 2 4 4ZM12 12c2 4 4 5 4 8 0-2-2-4-4-4M12 12v10M12 12V2M8 6l4-4 4 4", strokeW: 1.4 },
+  { keywords: ["dinosaur", "rex"], path: "M3.5 12.5c1 0 1.5 1 2 2 .3.6.5 1.3.5 2 .2-2 1.3-4 3-5 2.5-1.4 5.5-1 7 1M16 11c3-1 5 1 5 4 0 3-2 4-4 4h-2l-1 3H7l-1-3h-2c-1 0-2-.5-2-1.5M12 8l2-3 2 3", strokeW: 1.6 },
+  { keywords: ["turtle"], path: "M12 10a4 4 0 1 0-4 4v3a4 4 0 0 0 8 0v-3a4 4 0 0 0-4-4ZM4 6l2 2M20 6l-2 2M12 4v2M8 20l-2 2M16 20l2 2", strokeW: 1.6 },
+  { keywords: ["whale"], path: "M2 12c0-3 2-5 5-5 1-2 4-3 6-1 1-1 3-2 5-1 2 1 3 3 3 5s-1 5-4 5H4c-1 0-2-1-2-3ZM2 12c0 3 2 4 4 4", strokeW: 1.6 },
+  { keywords: ["shark"], path: "M2 14c4-2 8-4 14-4 3 0 5 1 6 3l2-1-2 3 2 3-2-1c-1 2-3 3-6 3-6 0-10-2-14-4ZM18 14l-1 3M7 9l1 2M10 7l1 2M13 6l1 2", strokeW: 1.6 },
+  { keywords: ["dolphin"], path: "M6.5 14c-.5 1-1.5 2-2.5 2.5l3-3.5c.2.4.5.8 1 1M22 7c0 4-3 6-7 6-3 0-5-2-7-4l-3 3c1 2 2.5 4 5 5 4 2 9 0 11-3 1.5-2 1.5-5 1.5-7Z", strokeW: 1.6 },
+  { keywords: ["snake"], path: "M4 12c0-3 3-4 3-6 0-2 2-2 2 0 0 2-3 3-3 6 0 3 3 4 3 6 0 2-2 2-2 0 0-2 3-3 3-6", strokeW: 1.8 },
+  { keywords: ["spider"], path: "M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8ZM4 4l8 8M4 20l8-8M20 4l-8 8M20 20l-8-8", strokeW: 1.6 },
+  { keywords: ["bee"], path: "M8.5 4.3A2 2 0 0 1 10.5 3h3a2 2 0 0 1 2 2v2h.5c1.5 0 2.5 1 2.5 2.5 0 1.1-.7 2-1.7 2.3L16 13h2a2 2 0 0 1 2 2v.5c0 1.5-1 2.5-2.5 2.5H17l1 3.5c.2.7-.3 1.5-1 1.5h-4c-.7 0-1.2-.8-1-1.5l1-3.5h-1c-1.5 0-2.5-1-2.5-2.5V15a2 2 0 0 1 2-2h2l-.3-.9C7.2 11.8 6.5 10.9 6.5 9.8 6.5 8.3 7.5 7 9 7h1.5", strokeW: 1.4 },
+  { keywords: ["horse"], path: "M12 22v-4h-2l-1-8c-.5-4 2-8 5-8s5.5 4 5 8l-1 8h-2v4M8 7c-1-3 0-4 1-5M16 7c1-3 2-4 1-5", strokeW: 1.6 },
+  { keywords: ["unicorn"], path: "M12 22v-3M6 19l3-5h6l3 5M5 14l3 2M19 14l-3 2M12 7c-3 0-5 3-5 6v1c0 1-1 2-2 2M12 7c3 0 5 3 5 6v1c0 1 1 2 2 2M10 7c-1-3-1-5 1-6s5-1 5 1", strokeW: 1.6 },
+  { keywords: ["lion"], path: "M12 12c-2 0-3-1-3-3s1-3 3-3 3 1 3 3-1 3-3 3Zm0 0v10M8 12c-3 1-6-1-6-4 0-2 1-4 3-5-.5 1.5 0 4 2 5M16 12c3 1 6-1 6-4 0-2-1-4-3-5 .5 1.5 0 4-2 5M12 2c-1.5 0-3 .5-4 1.5-1 2 0 4 2 4 1.5 0 2-2 1-3s2-2 3-2Z", strokeW: 1.6 },
+  { keywords: ["panda", "bear"], path: "M12 22c5.5 0 10-4.5 10-10S17.5 2 12 2 2 6.5 2 12s4.5 10 10 10ZM7 13c1 0 2-1 2-2s-1-2-2-2-2 1-2 2 1 2 2 2ZM17 13c1 0 2-1 2-2s-1-2-2-2-2 1-2 2 1 2 2 2ZM9 16c1 1 5 1 6 0", strokeW: 1.6 },
+  { keywords: ["koala"], path: "M12 22c4.5 0 8-3.5 8-8 0-2.5-1-4.5-2.5-6l-2-1M12 22c-4.5 0-8-3.5-8-8 0-2.5 1-4.5 2.5-6l2-1M8 14c1-2 2-3 4-3s3 1 4 3M8 10v-1c0-1.5 1-3 3-3s3 1.5 3 3v1", strokeW: 1.6 },
+  { keywords: ["elephant"], path: "M3.5 6.5C5.5 4 8 3 12 3s6.5 1 8.5 3.5c1.5 2 1.5 5 0 7-1.5 2-3 2-5 2h-10c-2 0-3.5 0-5-2-1.5-2-1.5-5 0-7ZM9 13c1 0 2 1 3 1s2-1 3-1M12 10c-1 0-2-1-2-2s1-2 2-2 2 1 2 2-1 2-2 2ZM22 7c-1 2-2 2-3 3-1 1-1.5 2-1.5 3M3 7c1 2 2 2 3 3 1 1 1.5 2 1.5 3", strokeW: 1.6 },
+  { keywords: ["giraffe"], path: "M12 22v-4h-2l-1-8c-.5-4 2-8 5-8s5.5 4 5 8l-1 8h-2v4M10 2V0M14 2V0M11 6c.7 0 1-.3 1-1s-.3-1-1-1-1 .3-1 1 .3 1 1 1ZM16 6c.7 0 1-.3 1-1s-.3-1-1-1-1 .3-1 1 .3 1 1 1Z", strokeW: 1.6 },
+  { keywords: ["monkey"], path: "M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6ZM5 5c-1.5 0-3 1.5-3 3s1.5 3 3 3M19 5c1.5 0 3 1.5 3 3s-1.5 3-3 3M9 12c-1 0-2-1-2-2M15 12c1 0 2-1 2-2", strokeW: 1.6 },
+  { keywords: ["bird", "owl", "chick", "duck"], path: "M16 7h.01M3.4 18H12a8 8 0 0 0 8-8V6M3.4 18l-1.5 4.5M5 12c3.5 0 6 2 7 4", strokeW: 1.6 },
+  { keywords: ["car", "police"], path: "M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9L18 10.2c-.4-.1-.9-.1-1.3 0l-1.2.3-1.1-2.5A2 2 0 0 0 12.5 6h-2.7A2 2 0 0 0 8 7.6L6.8 10.5l-1.1-.3c-.4-.1-.9-.1-1.3 0L1.5 10.1C.7 10.3 0 11.1 0 12v4c0 .6.4 1 1 1h2M7 17h10M7 20v-3M17 20v-3", strokeW: 1.6 },
+  { keywords: ["truck", "bus"], path: "M10 17h8m4 0h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9L20 9.2c-.4-.1-.9-.1-1.3 0l-1.2.3-1.1-2.5A2 2 0 0 0 14.5 5h-2.7A2 2 0 0 0 10 6.6M5 17h2m0 0v3m10-3v3M7 14v2M7 8c-2 0-4 2-4 4", strokeW: 1.6 },
+  { keywords: ["bike", "bicycle"], path: "M5 17a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm14 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm-17 1L12 3h4l-4 6h5", strokeW: 1.6 },
+  { keywords: ["rocket", "space"], path: "M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09ZM12 15l-3-3a22 22 0 0 1 2-3.99A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2ZM9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5", strokeW: 1.6 },
+  { keywords: ["plane", "airplane"], path: "M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2Z", strokeW: 1.6 },
+  { keywords: ["train"], path: "M3 17h18M3 7v10c0 1 1 2 2 2h14c1 0 2-1 2-2V7M3 7c0-1 1-2 2-2h14c1 0 2 1 2 2M7 12h10M7 7h10M8 22v-3M16 22v-3", strokeW: 1.6 },
+  { keywords: ["ship", "sailboat"], path: "M2 20a2.4 2.4 0 0 0 2 1h16a2 2 0 0 0 2-2M4 18l8-14 8 14M12 4v14M8 18v-6M16 18v-6", strokeW: 1.6 },
+  { keywords: ["halloween", "ghost"], path: "M9 10h.01M15 10h.01M12 2a8 8 0 0 0-8 8v12l4-3 4 3 4-3 4 3V10a8 8 0 0 0-8-8ZM8 14c1 1 2.5 1 3 0s2 1 3 0", strokeW: 1.6 },
+  { keywords: ["pumpkin"], path: "M12 2c5 0 8 3 8 8 0 3-2 5-4 5h-8c-2 0-4-2-4-5 0-5 3-8 8-8Zm-1 5v2m4-2v2M8 14l1-2M16 14l-1-2M12 7v0", strokeW: 1.6 },
+  { keywords: ["christmas", "tree"], path: "M12 2v4M4 20h16L12 4 4 20ZM7 20l5-10 5 10M8 20h8M10 20v-2M14 20v-2", strokeW: 1.6 },
+  { keywords: ["santa"], path: "M12 2c4 0 7 3 7 7 0 2-1 3-2 4 1 1 2 3 2 5h-14c0-2 1-4 2-5-1-1-2-2-2-4 0-4 3-7 7-7Zm-3 9v1m6-1v1M9 14c.5 1 1.5 1.5 3 1.5s2.5-.5 3-1.5", strokeW: 1.6 },
+  { keywords: ["snowflake"], path: "M12 2v20M2 12h20M4.9 4.9l14.2 14.2M19.1 4.9L4.9 19.1", strokeW: 1.6 },
+  { keywords: ["snowman"], path: "M12 22a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM12 6a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM8 8h.01M16 8h.01M8 10l4-2 4 2", strokeW: 1.6 },
+  { keywords: ["easter", "bunny"], path: "M12 12a4 4 0 1 1 0 8 4 4 0 0 1 0-8ZM10 8c0-3 1-5 2-5s2 2 2 5M9 8c-.5-2-.5-4 1-5M12 14v4", strokeW: 1.6 },
+  { keywords: ["valentine", "heart", "love", "cupid"], path: "M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z", strokeW: 1.6 },
+  { keywords: ["thanksgiving", "turkey"], path: "M12 22c-3 0-5-2-5-5v-3c0-2 2-4 5-4s5 2 5 4v3c0 3-2 5-5 5ZM8 10c0-1.5 2-2.5 4-2.5s4 1 4 2.5M4 8l2-2M20 8l-2-2M6 5l-1-2M18 5l1-2", strokeW: 1.6 },
+  { keywords: ["fireworks", "sparkles"], path: "M12 3l1.9 5.8 5.8 1.9-5.8 1.9L12 18.5l-1.9-5.8L4.3 10.7l5.8-1.9ZM19 2l.7 2 2 .7-2 .7L19 8l-.7-2-2-.7 2-.7Z", strokeW: 1.6 },
+  { keywords: ["princess", "crown", "queen"], path: "M3 8l3 4 4-6 4 6 4-4 3 6H3ZM5 18h14M5 21h14", strokeW: 1.6 },
+  { keywords: ["castle"], path: "M3 22V10l3-2 3 2v-4l3-2 3 2v4l3-2 3 2v12M9 10v12M15 10v12M9 16h6", strokeW: 1.6 },
+  { keywords: ["dragon"], path: "M5 12c0-3 2-5 5-5 2 0 3 1 4 1s1-1 0-2c-1-1-3-1-4-1-4 0-7 3-7 6M7 12c0-2 2-3 4-3s3 1 3 3v1c0 2-3 3-3 5M14 13c1 0 2-1 2-2 0-2-2-4-5-4-1 0-2 1-2 2M18 6c2 1 3 3 3 5 0 3-3 5-6 5", strokeW: 1.6 },
+  { keywords: ["wizard", "magic", "wand"], path: "M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8L19 13M15 9h0M17.8 6.2L19 5M3 21l9-9M12.2 6.2L11 5", strokeW: 1.6 },
+  { keywords: ["flower", "rose"], path: "M12 22v-8M12 14c-2-2-2-5 0-7 2 2 2 5 0 7ZM5 11C4 10 3 8 3 7c2 0 4 1 5 3M19 11c1-1 2-3 2-4-2 0-4 1-5 3M5 14c-1 1-2 2-2 3 2 0 4-1 5-3M19 14c1 1 2 2 2 3-2 0-4-1-5-3M12 7c-2-2-2-4 0-5 2 1 2 3 0 5Z", strokeW: 1.6 },
+  { keywords: ["sun"], path: "M12 12h.01M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41", strokeW: 1.6 },
+  { keywords: ["moon"], path: "M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z", strokeW: 1.6 },
+  { keywords: ["mountain"], path: "m8 3 4 8 5-5 5 15H2L8 3Z", strokeW: 1.6 },
+  { keywords: ["beach", "palm"], path: "M4 20c1-1 2-2 3-2s2 1 3 2M7 18c2-2 4-2 5 0s3 2 5 0c2-2 4-2 5 0M13 18v-8M13 10c-1-2-4-3-5-2 1 1 3 2 4 2-1-3 1-5 3-6M13 10c1-2 4-3 5-2-1 1-3 2-4 2 1-3-1-5-3-6", strokeW: 1.6 },
+  { keywords: ["cloud"], path: "M17.5 19a4.5 4.5 0 1 0-1.4-8.8 6 6 0 0 0-11.4 2.3 4 4 0 0 0 .4 7.5Z", strokeW: 1.6 },
+  { keywords: ["rain"], path: "M17.5 12a4.5 4.5 0 1 0-1.4-8.8 6 6 0 0 0-11.4 2.3 4 4 0 0 0 .4 7.5ZM8 14l-1 4M12 14l-1 4M16 14l-1 4", strokeW: 1.6 },
+  { keywords: ["leaf"], path: "M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19.2 2.3c1 1 .5 3-1.7 5-1.6 1.6-3.3 2.5-5.5 2.5-1.8 0-2-.5-2-1 0-1.6 1-4.8 1-7.5M2 21c1-1 2-2 4-2s2 1 3 2", strokeW: 1.6 },
+  { keywords: ["star"], path: "M12 2l3 7 7 .8-5.5 4.8L18 22l-6-3-6 3 1.5-7.4L2 9.8 9 9Z", strokeW: 1.6 },
+  { keywords: ["cake", "donut", "cupcake"], path: "M20 21H4c-.6 0-1-.4-1-1V7c0-.6.4-1 1-1h16c.6 0 1 .4 1 1v13c0 .6-.4 1-1 1ZM8 6V3c0-.6.4-1 1-1h6c.6 0 1 .4 1 1v3", strokeW: 1.6 },
+  { keywords: ["pizza"], path: "M15 11h.01M15 15h.01M10 16h.01M21 16a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5h14a2 2 0 0 1 2 2ZM3 4l18-2", strokeW: 1.6 },
+  { keywords: ["apple"], path: "M12 14c2-3 6-4 6-8a6 6 0 0 0-12 0c0 4 4 5 6 8ZM12 6c-1-2 0-4 2-5M17 9v0", strokeW: 1.6 },
+];
+
+/**
+ * 在曼陀罗中心植入 subject 专属图标（白色圆形画布 + 黑色图标 stroke）
+ * 完美解决之前所有主题看起来一模一样的"猪鼻子六边形"问题
  */
 function generateCenterAnimal(subject: string, cx: number, cy: number): string {
   const s = subject.toLowerCase();
 
-  // 猫 / 虎 / 狮 → 三角形耳朵 + 圆头
-  if (s.includes("cat") || s.includes("tiger") || s.includes("lion") || s.includes("leopard")) {
-    return `<circle cx="${cx}" cy="${cy}" r="18" stroke-width="1.5"/>
-      <polygon points="${cx - 14},${cy - 6} ${cx - 18},${cy - 22} ${cx - 4},${cy - 12}" stroke-width="1.5"/>
-      <polygon points="${cx + 14},${cy - 6} ${cx + 18},${cy - 22} ${cx + 4},${cy - 12}" stroke-width="1.5"/>
-      <circle cx="${cx - 6}" cy="${cy - 2}" r="1.5" fill="#000"/>
-      <circle cx="${cx + 6}" cy="${cy - 2}" r="1.5" fill="#000"/>
-      <path d="M ${cx} ${cy + 2} L ${cx} ${cy + 7} M ${cx - 3} ${cy + 5} L ${cx + 3} ${cy + 5}" stroke-width="1.2"/>`;
-  }
-
-  // 狗 / 狼 / 狐狸 → 椭圆 + 垂耳
-  if (s.includes("dog") || s.includes("wolf") || s.includes("fox") || s.includes("puppy")) {
-    return `<ellipse cx="${cx}" cy="${cy}" rx="16" ry="14" stroke-width="1.5"/>
-      <path d="M ${cx - 16} ${cy - 4} Q ${cx - 24} ${cy - 18} ${cx - 10} ${cy - 10}" stroke-width="1.5"/>
-      <path d="M ${cx + 16} ${cy - 4} Q ${cx + 24} ${cy - 18} ${cx + 10} ${cy - 10}" stroke-width="1.5"/>
-      <circle cx="${cx - 5}" cy="${cy - 3}" r="1.5" fill="#000"/>
-      <circle cx="${cx + 5}" cy="${cy - 3}" r="1.5" fill="#000"/>
-      <ellipse cx="${cx}" cy="${cy + 4}" rx="2.5" ry="2" fill="#000"/>`;
-  }
-
-  // 蝴蝶 → 菱形 + 对称翅膀
-  if (s.includes("butterfly") || s.includes("moth")) {
-    return `<line x1="${cx}" y1="${cy - 16}" x2="${cx}" y2="${cy + 16}" stroke-width="1.5"/>
-      <path d="M ${cx} ${cy - 16} Q ${cx - 22} ${cy - 22} ${cx - 18} ${cy} Q ${cx - 22} ${cy + 22} ${cx} ${cy + 16}" stroke-width="1.5"/>
-      <path d="M ${cx} ${cy - 16} Q ${cx + 22} ${cy - 22} ${cx + 18} ${cy} Q ${cx + 22} ${cy + 22} ${cx} ${cy + 16}" stroke-width="1.5"/>
-      <circle cx="${cx - 14}" cy="${cy - 6}" r="2"/>
-      <circle cx="${cx + 14}" cy="${cy - 6}" r="2"/>
-      <circle cx="${cx - 12}" cy="${cy + 8}" r="1.5"/>
-      <circle cx="${cx + 12}" cy="${cy + 8}" r="1.5"/>`;
-  }
-
-  // 恐龙 / 龙 → 锯齿形
-  if (s.includes("dinosaur") || s.includes("dragon") || s.includes("rex")) {
-    return `<path d="M ${cx - 20} ${cy + 8} L ${cx - 16} ${cy - 4} L ${cx - 10} ${cy + 6} L ${cx - 4} ${cy - 6} L ${cx + 2} ${cy + 4} L ${cx + 8} ${cy - 8} L ${cx + 14} ${cy + 2} L ${cx + 18} ${cy - 10}" stroke-width="1.8"/>
-      <circle cx="${cx - 12}" cy="${cy - 8}" r="8" stroke-width="1.5"/>
-      <circle cx="${cx - 14}" cy="${cy - 9}" r="1.2" fill="#000"/>`;
-  }
-
-  // 海龟 / 乌龟 → 六边形壳
-  if (s.includes("turtle")) {
-    const pts = [];
-    for (let i = 0; i < 6; i++) {
-      const a = (i / 6) * Math.PI * 2 - Math.PI / 2;
-      pts.push(`${cx + Math.cos(a) * 16},${cy + Math.sin(a) * 16}`);
+  // 匹配 SUBJECT_ICONS —— 第一个 keywords 命中即返回
+  for (const entry of SUBJECT_ICONS) {
+    if (entry.keywords.some((kw) => s.includes(kw))) {
+      return `<circle cx="${cx}" cy="${cy}" r="22" fill="#fff" stroke="#000" stroke-width="1.5"/>
+        <circle cx="${cx}" cy="${cy}" r="28" fill="none" stroke="#000" stroke-width="0.8" opacity="0.3"/>
+        <g transform="translate(${cx - 12} ${cy - 12}) scale(1)">
+          <path d="${entry.path}" fill="none" stroke="#000" stroke-width="${entry.strokeW}" stroke-linecap="round" stroke-linejoin="round"/>
+        </g>`;
     }
-    return `<polygon points="${pts.join(" ")}" stroke-width="1.5"/>
-      <polygon points="${pts.map((p) => {
-        const [x, y] = p.split(",").map(Number);
-        return `${cx + (x - cx) * 0.55},${cy + (y - cy) * 0.55}`;
-      }).join(" ")}" stroke-width="1"/>`;
   }
 
-  // 鲨鱼 / 鱼 / 鲸 / 海豚 → 梭形 + 尾巴
-  if (s.includes("shark") || s.includes("fish") || s.includes("whale") || s.includes("dolphin")) {
-    return `<path d="M ${cx - 18} ${cy} Q ${cx - 10} ${cy - 10} ${cx + 8} ${cy - 4} Q ${cx + 18} ${cy} ${cx + 24} ${cy - 8} L ${cx + 16} ${cy} L ${cx + 24} ${cy + 8} Q ${cx + 18} ${cy + 4} ${cx + 8} ${cy + 4} Q ${cx - 10} ${cy + 10} ${cx - 18} ${cy} Z" stroke-width="1.5"/>
-      <circle cx="${cx - 2}" cy="${cy - 2}" r="1.5" fill="#000"/>`;
-  }
-
-  // 蛇 → S 曲线
-  if (s.includes("snake")) {
-    return `<path d="M ${cx - 18} ${cy - 8} Q ${cx - 6} ${cy + 12} ${cx + 6} ${cy - 8} Q ${cx + 14} ${cy - 18} ${cx + 18} ${cy - 4}" stroke-width="2" fill="none"/>
-      <circle cx="${cx + 18}" cy="${cy - 4}" r="5" stroke-width="1.5"/>
-      <circle cx="${cx + 20}" cy="${cy - 6}" r="0.8" fill="#000"/>`;
-  }
-
-  // 蜘蛛 / 昆虫 → 放射腿
-  if (s.includes("spider")) {
-    let legs = "";
-    for (let i = 0; i < 8; i++) {
-      const a = (i / 8) * Math.PI * 2;
-      const x1 = cx + Math.cos(a) * 6;
-      const y1 = cy + Math.sin(a) * 6;
-      const x2 = cx + Math.cos(a) * 20;
-      const y2 = cy + Math.sin(a) * 20;
-      legs += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke-width="1.2"/>`;
-    }
-    return `<circle cx="${cx}" cy="${cy}" r="10" stroke-width="1.5"/>${legs}`;
-  }
-
-  // 鸟 / 鸡 / 鸭 → V 形 + 身体
-  if (s.includes("bird") || s.includes("chick") || s.includes("duck") || s.includes("owl")) {
-    return `<circle cx="${cx}" cy="${cy + 2}" r="12" stroke-width="1.5"/>
-      <path d="M ${cx} ${cy - 10} Q ${cx - 12} ${cy - 20} ${cx - 4} ${cy - 14} Q ${cx} ${cy - 10} ${cx} ${cy - 10}" stroke-width="1.5"/>
-      <path d="M ${cx + 8} ${cy + 2} L ${cx + 16} ${cy + 2} L ${cx + 8} ${cy + 5} Z" stroke-width="1.2"/>
-      <circle cx="${cx - 4}" cy="${cy}" r="1.2" fill="#000"/>`;
-  }
-
-  // 默认：六边形（中性动物占位）
-  const defPts = [];
-  for (let i = 0; i < 6; i++) {
-    const a = (i / 6) * Math.PI * 2 - Math.PI / 2;
-    defPts.push(`${cx + Math.cos(a) * 16},${cy + Math.sin(a) * 16}`);
-  }
-  return `<polygon points="${defPts.join(" ")}" stroke-width="1.5"/>
-    <circle cx="${cx - 5}" cy="${cy - 2}" r="1.2" fill="#000"/>
-    <circle cx="${cx + 5}" cy="${cy - 2}" r="1.2" fill="#000"/>`;
+  // 终极兜底：圆形 + 3 星点（中性但可区分）
+  return `<circle cx="${cx}" cy="${cy}" r="22" fill="#fff" stroke="#000" stroke-width="1.5"/>
+    <circle cx="${cx - 8}" cy="${cy - 6}" r="2" fill="#000"/>
+    <circle cx="${cx + 8}" cy="${cy - 6}" r="2" fill="#000"/>
+    <circle cx="${cx}" cy="${cy + 4}" r="2" fill="#000"/>`;
 }
 
 /* ==================== 方案 2/3：原有卡通简笔 SVG（for-kids / for-toddlers） ==================== */
