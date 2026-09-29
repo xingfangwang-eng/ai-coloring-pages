@@ -166,22 +166,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 页脚：合规免责声明 */}
-      <footer className="mt-auto bg-slate-950 text-slate-400 text-xs py-8 border-t border-slate-800">
-        <div className="max-w-5xl mx-auto px-4 space-y-4 text-center">
-          <p className="max-w-2xl mx-auto text-slate-500">
-            <strong>Affiliate Disclaimer:</strong> As an Amazon Associate, we earn from qualifying purchases. Product prices, availability, and promotional codes are accurate as of the date/time indicated and are subject to change.
-          </p>
-          <div className="flex justify-center gap-6 text-slate-400">
-            <Link href="/privacy" className="hover:underline">Privacy Policy</Link>
-            <Link href="/terms" className="hover:underline">Terms of Service</Link>
-            <Link href="/about" className="hover:underline">About Us</Link>
-          </div>
-          <p className="text-slate-600">
-            &copy; 2026 PowerReady Hub. All rights reserved.
-          </p>
-        </div>
-      </footer>
 
     </div>
   );

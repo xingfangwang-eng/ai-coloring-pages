@@ -1,70 +1,46 @@
-/**
- * sitemap.ts —— 自动遍历所有 pSEO slugs
- *
- * 基础 URL：https://wangdadi.xyz
- * 覆盖：首页 + 156 个着色页 + 其它静态页面
- */
-
-import type { MetadataRoute } from "next";
-import { getAllUSColoringSlugs } from "@/lib/us-coloring-data";
-
-const BASE_URL = "https://www.wangdadi.xyz";
+import type { MetadataRoute } from 'next';
+// 自动导入你的城市数据
+import citiesData from '@/data/cities.json';
 
 export default function sitemap(): MetadataRoute.Sitemap {
+  const baseUrl = 'https://www.wangdadi.xyz';
+
+  // 1. 核心基础页面
   const staticPages: MetadataRoute.Sitemap = [
     {
-      url: BASE_URL,
+      url: `${baseUrl}`,
       lastModified: new Date(),
-      changeFrequency: "daily",
-      priority: 1.0,
+      changeFrequency: 'weekly',
+      priority: 1.0, // 首页最高权重
     },
     {
-      url: `${BASE_URL}/about`,
+      url: `${baseUrl}/about`,
       lastModified: new Date(),
-      changeFrequency: "monthly",
+      changeFrequency: 'monthly',
       priority: 0.5,
     },
     {
-      url: `${BASE_URL}/pricing`,
+      url: `${baseUrl}/privacy`,
       lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.5,
+      changeFrequency: 'monthly',
+      priority: 0.3,
     },
     {
-      url: `${BASE_URL}/privacy`,
+      url: `${baseUrl}/terms`,
       lastModified: new Date(),
-      changeFrequency: "yearly",
-      priority: 0.2,
-    },
-    {
-      url: `${BASE_URL}/terms`,
-      lastModified: new Date(),
-      changeFrequency: "yearly",
-      priority: 0.2,
+      changeFrequency: 'monthly',
+      priority: 0.3,
     },
   ];
 
-  // GEO 问答落地页 —— 拦截 ChatGPT/Perplexity 长句查询
-  const answersSlugs = [
-    "free-printable-coloring-pages-no-signup",
-    "how-to-print-ai-coloring-pages-us-letter",
-    "best-ai-coloring-page-generator-for-toddlers",
-  ];
-  const answersPages: MetadataRoute.Sitemap = answersSlugs.map((slug) => ({
-    url: `${BASE_URL}/answers/${slug}`,
+  // 2. 自动从 cities.json 提取所有城市页面生成 URL
+  const cityPages: MetadataRoute.Sitemap = citiesData.map((city) => ({
+    url: `${baseUrl}/power/${city.slug}`,
     lastModified: new Date(),
-    changeFrequency: "weekly",
-    priority: 0.9,
+    changeFrequency: 'weekly',
+    priority: 0.8, // 城市长尾页次高权重
   }));
 
-  // pSEO 着色页 —— 每个 slug 一个条目
-  const coloringSlugs = getAllUSColoringSlugs();
-  const coloringPages: MetadataRoute.Sitemap = coloringSlugs.map((slug) => ({
-    url: `${BASE_URL}/coloring-pages/${slug}`,
-    lastModified: new Date(),
-    changeFrequency: "weekly",
-    priority: 0.8,
-  }));
-
-  return [...staticPages, ...answersPages, ...coloringPages];
+  // 合并导出完整的站点地图
+  return [...staticPages, ...cityPages];
 }
