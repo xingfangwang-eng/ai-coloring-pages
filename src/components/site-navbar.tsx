@@ -8,8 +8,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
-  { label: "Studio", href: "/workspace" },
-  { label: "Pricing", href: "/pricing" },
+  { label: "Sizing Guide", href: "/#sizing-guide" },
+  { label: "Regional Guides", href: "/#regional-guides" },
   { label: "About", href: "/about" },
 ];
 
@@ -22,7 +22,7 @@ export function SiteNavbar() {
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
           <Brush className="h-4 w-4 text-primary" />
-          <span className="text-sm font-semibold">AI Coloring Pages</span>
+          <span className="text-sm font-semibold">⚡ PowerReady Hub</span>
         </Link>
 
         {/* Desktop nav */}

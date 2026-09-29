@@ -16,13 +16,9 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "AI Coloring Pages · Free Line Art Generator",
-  description:
-    "Type a word, get a printable black & white line art coloring page. 100% free, no sign-up required.",
-  verification: {
-    google: "uTT2vLHXrvh44esSpln_EMc1QEFjkN0vjJZ04UgI0Qc",
-  },
+export const metadata = {
+  title: 'Emergency Power Hub | Portable Power Stations & Solar Generators',
+  description: 'Compare battery runtime, solar charging speeds, and backup power setups for storm outages.',
 };
 
 export default function RootLayout({
