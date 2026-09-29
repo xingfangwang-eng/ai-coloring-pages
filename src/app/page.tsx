@@ -36,14 +36,15 @@ export default function HomePage() {
             <strong className="text-amber-400">⚡ Severe Weather Warning:</strong> Need backup power gear delivered fast before the storm hits? 
             Get fast, free priority delivery with an Amazon Prime trial.
           </div>
-          <a
-            href="https://amzn.to/4AyzYJD"
-            target="_blank"
-            rel="noopener noreferrer nofollow sponsored"
-            className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-4 py-2 rounded-lg text-xs whitespace-nowrap shadow transition"
-          >
-            Try 30-Day Prime Free →
-          </a>
+          {/* 将 href 替换为下面这个完整带 tag 的官方网址 */}
+<a
+  href="https://www.amazon.com/amazonprime?tag=powerreadyhub-20"
+  target="_blank"
+  rel="noopener noreferrer nofollow sponsored"
+  className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-4 py-2 rounded-lg text-xs whitespace-nowrap shadow transition"
+>
+  Try 30-Day Prime Free →
+</a>
         </div>
 
         <div className="text-center mb-8">
