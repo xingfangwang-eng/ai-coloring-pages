@@ -142,11 +142,20 @@ export default async function CityGuidePage({ params }: CityPageProps) {
           </div>
         </section>
 
-        {/* 返回首页 */}
-        <div className="pt-6 text-center">
-          <Link href="/" className="text-sm text-amber-600 hover:underline">
-            ← Return to All Emergency Power Guides
-          </Link>
+        {/* 金字塔内链闭环：所有子页面权重全量反哺首页主词 */}
+        <div className="pt-8 border-t border-slate-200 text-center space-y-2">
+          <p className="text-xs text-slate-500">
+            Comparing broader backup systems for your household?
+          </p>
+          <div>
+            <Link 
+              href="/" 
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-amber-600 hover:text-amber-700 hover:underline"
+            >
+              <span>Explore Top-Rated Portable Solar Generators for Home Emergency Backup (2026 Guide)</span>
+              <span>→</span>
+            </Link>
+          </div>
         </div>
 
       </div>
