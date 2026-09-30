@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-// 导入城市数据（稍后 Python 会自动生成/更新这个 json 文件）
+// 导入城市数据
 import citiesData from '@/data/cities.json';
 
 interface CityPageProps {
@@ -41,17 +41,51 @@ export default async function CityGuidePage({ params }: CityPageProps) {
     notFound();
   }
 
+  // 1. Google 官方标准面包屑结构化数据 (BreadcrumbList Schema)
+  const breadcrumbSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Home',
+        item: 'https://www.wangdadi.xyz',
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: `${city.stateName} Outage Guides`,
+        item: 'https://www.wangdadi.xyz/#regional-guides',
+      },
+      {
+        '@type': 'ListItem',
+        position: 3,
+        name: `${city.cityName}, ${city.stateCode} Backup Power`,
+        item: `https://www.wangdadi.xyz/power/${city.slug}`,
+      },
+    ],
+  };
+
   return (
     <div className="bg-slate-50 text-slate-800 min-h-screen py-10 px-4">
+      {/* 注入 Google 爬虫专用的 JSON-LD 结构化数据标签 */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
+
       <div className="max-w-4xl mx-auto space-y-8">
         
-        {/* 面包屑导航 */}
-        <nav className="text-xs text-slate-500 flex gap-2">
-          <Link href="/" className="hover:underline">Home</Link>
+        {/* 面包屑导航（真实用户可视） */}
+        <nav aria-label="Breadcrumb" className="text-xs text-slate-500 flex items-center gap-2">
+          <Link href="/" className="hover:underline hover:text-amber-600 transition">Home</Link>
           <span>/</span>
-          <span className="text-slate-700 font-medium">{city.stateName}</span>
+          <Link href="/#regional-guides" className="hover:underline hover:text-amber-600 transition text-slate-600 font-medium">
+            {city.stateName}
+          </Link>
           <span>/</span>
-          <span className="text-slate-900 font-medium">{city.cityName}</span>
+          <span className="text-slate-900 font-semibold">{city.cityName}</span>
         </nav>
 
         {/* 页面主标题 H1 */}
