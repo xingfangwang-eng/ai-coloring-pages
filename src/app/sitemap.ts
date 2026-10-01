@@ -1,17 +1,17 @@
 import type { MetadataRoute } from 'next';
-// 自动导入你的城市数据
 import citiesData from '@/data/cities.json';
+import appliancesData from '@/data/appliances.json';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = 'https://www.wangdadi.xyz';
 
-  // 1. 核心基础页面
+  // 1. 核心静态页面
   const staticPages: MetadataRoute.Sitemap = [
     {
       url: `${baseUrl}`,
       lastModified: new Date(),
       changeFrequency: 'weekly',
-      priority: 1.0, // 首页最高权重
+      priority: 1.0,
     },
     {
       url: `${baseUrl}/about`,
@@ -33,14 +33,21 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
   ];
 
-  // 2. 自动从 cities.json 提取所有城市页面生成 URL
+  // 2. 20 个高风险城市页面
   const cityPages: MetadataRoute.Sitemap = citiesData.map((city) => ({
     url: `${baseUrl}/power/${city.slug}`,
     lastModified: new Date(),
     changeFrequency: 'weekly',
-    priority: 0.8, // 城市长尾页次高权重
+    priority: 0.8,
   }));
 
-  // 合并导出完整的站点地图
-  return [...staticPages, ...cityPages];
+  // 3. 8 大核心家电带载专属页面 (高意图转化词)
+  const appliancePages: MetadataRoute.Sitemap = appliancesData.map((item) => ({
+    url: `${baseUrl}/appliances/${item.slug}`,
+    lastModified: new Date(),
+    changeFrequency: 'weekly',
+    priority: 0.9, // 给家电痛点词更高的权重优先级
+  }));
+
+  return [...staticPages, ...cityPages, ...appliancePages];
 }
