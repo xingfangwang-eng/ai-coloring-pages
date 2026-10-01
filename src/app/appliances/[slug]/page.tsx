@@ -19,6 +19,10 @@ export async function generateMetadata({ params }: AppliancePageProps) {
   return {
     title: `Can You Run a ${item.applianceName} on a Solar Generator? (Watts & Hours 2026)`,
     description: `Complete wattage draw, surge requirements, and battery runtime calculations for running a ${item.applianceName.toLowerCase()} during power outages.`,
+    // 👉 加上下面这 3 行代码：声明每个家电页面的唯一规范网址
+    alternates: {
+      canonical: `https://www.wangdadi.xyz/appliances/${item.slug}`,
+    },
   };
 }
 

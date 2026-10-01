@@ -23,6 +23,10 @@ export async function generateMetadata({ params }: CityPageProps) {
   return {
     title: `Best Solar Generators for ${city.cityName}, ${city.stateCode} (${city.riskType} Outages 2026)`,
     description: `Compare portable battery backups and solar generator runtimes tailored for ${city.cityName}, ${city.stateName} to handle ${city.primaryThreat}.`,
+    // 补齐官方规范网址声明
+    alternates: {
+      canonical: `https://www.wangdadi.xyz/power/${city.slug}`,
+    },
   };
 }
 
