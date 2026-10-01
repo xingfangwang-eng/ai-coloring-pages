@@ -1,9 +1,9 @@
 import json
 import os
 
-# 精选第一批涵盖【飓风带】、【冬暴冰冻带】、【山火断电带】的高风险城市
+# 2026 全美高断电风险与极端气候城市数据库（扩充至 20 席核心城市）
 cities = [
-    # 佛罗里达州（飓风高危）
+    # ================= 佛罗里达州（飓风/雷暴/水浸重灾区） =================
     {
         "slug": "florida-miami",
         "cityName": "Miami",
@@ -28,7 +28,7 @@ cities = [
         "cityName": "Tampa",
         "stateName": "Florida",
         "stateCode": "FL",
-        "primaryThreat": "Gulf Coast Storm Surges & Tropical Storms",
+        "primaryThreat": "Gulf Coast Storm Surges & Substation Flooding",
         "riskType": "Hurricane",
         "riskLevel": "High",
         "recommendedCapacity": "1500Wh - 2000Wh",
@@ -42,8 +42,46 @@ cities = [
         "budgetPickAsin": "B0C1SQZ5K3",
         "budgetPickReason": "Delivers 1800W pure sine wave power at an accessible price point for keeping critical electronics alive."
     },
+    {
+        "slug": "florida-orlando",
+        "cityName": "Orlando",
+        "stateName": "Florida",
+        "stateCode": "FL",
+        "primaryThreat": "Inland Tropical Storm Wind Damage & Tree Falls",
+        "riskType": "Tropical Storm",
+        "riskLevel": "Moderate-High",
+        "recommendedCapacity": "1000Wh - 2000Wh",
+        "localAnalysis": "While inland, Orlando suffers from overhead power line snaps caused by fallen oak branches, knocking out residential power for 2-4 days post-storm.",
+        "topPickName": "EcoFlow DELTA 2 Max (2048Wh)",
+        "topPickClass": "Whole-Home Core Backup",
+        "topPickAsin": "B0C77J1S1N",
+        "topPickReason": "Supports smart generator dual-fuel charging if solar irradiance is blocked by heavy storm clouds.",
+        "budgetPickName": "Jackery Explorer 1000 v2 (1070Wh)",
+        "budgetPickClass": "Portable Household Starter",
+        "budgetPickAsin": "B0D1GBG6Y5",
+        "budgetPickReason": "Lightweight build allows rapid transport to family rooms to keep fans and Wi-Fi running."
+    },
+    {
+        "slug": "florida-jacksonville",
+        "cityName": "Jacksonville",
+        "stateName": "Florida",
+        "stateCode": "FL",
+        "primaryThreat": "St. Johns River Flooding & Coastal Nor'easters",
+        "riskType": "Flooding & Nor'easter",
+        "riskLevel": "Moderate-High",
+        "recommendedCapacity": "1500Wh+",
+        "localAnalysis": "Jacksonville's extensive river basin experiences prolonged localized flooding during coastal storms, leaving homes isolated from utility restoration crews.",
+        "topPickName": "Anker SOLIX F2000 (2048Wh)",
+        "topPickClass": "Rugged Rolling Station",
+        "topPickAsin": "B0BX9T1K94",
+        "topPickReason": "Heavy-duty wheels allow easy movement across flooded patio tiles to dry elevated rooms.",
+        "budgetPickName": "Bluetti AC180 (1152Wh)",
+        "budgetPickClass": "Emergency Workbench Unit",
+        "budgetPickAsin": "B0C1SQZ5K3",
+        "budgetPickReason": "Fast recharge speeds via solar panels during sunny afternoon clearing periods."
+    },
 
-    # 德克萨斯州（极寒暴雪与独立电网脆弱性）
+    # ================= 德克萨斯州（独立电网脆弱性与极寒/高温） =================
     {
         "slug": "texas-houston",
         "cityName": "Houston",
@@ -101,8 +139,46 @@ cities = [
         "budgetPickAsin": "B0B9XQ5G7B",
         "budgetPickReason": "70-minute charge time and lightweight 17 lb footprint for rapid apartment emergency deployment."
     },
+    {
+        "slug": "texas-san-antonio",
+        "cityName": "San Antonio",
+        "stateName": "Texas",
+        "stateCode": "TX",
+        "primaryThreat": "Severe Summer Heat Waves & Grid Demand Spikes",
+        "riskType": "Extreme Heat Grid Failure",
+        "riskLevel": "High",
+        "recommendedCapacity": "2000Wh+",
+        "localAnalysis": "Summer temperatures frequently top 100°F in South Texas, pushing neighborhood transformers to thermal overload. Keeping food cold and running fans is critical.",
+        "topPickName": "Anker SOLIX F2000 (2048Wh)",
+        "topPickClass": "High-Efficiency Thermal Station",
+        "topPickAsin": "B0BX9T1K94",
+        "topPickReason": "Industrial-grade cooling fans prevent battery throttling during hot 100°F garage charging.",
+        "budgetPickName": "Jackery Explorer 1000 v2 (1070Wh)",
+        "budgetPickClass": "Home Essential Unit",
+        "budgetPickAsin": "B0D1GBG6Y5",
+        "budgetPickReason": "Powers critical box fans, personal medical devices, and phone recharges for days."
+    },
+    {
+        "slug": "texas-fort-worth",
+        "cityName": "Fort Worth",
+        "stateName": "Texas",
+        "stateCode": "TX",
+        "primaryThreat": "Spring Tornado Outbreaks & Severe Hail",
+        "riskType": "Severe Thunderstorm / Tornado",
+        "riskLevel": "Moderate-High",
+        "recommendedCapacity": "1500Wh+",
+        "localAnalysis": "Severe spring supercells bring 70+ mph winds and hail that down neighborhood electrical poles, requiring immediate emergency shelter power.",
+        "topPickName": "EcoFlow DELTA 2 Max (2048Wh)",
+        "topPickClass": "Rapid Emergency Backup",
+        "topPickAsin": "B0C77J1S1N",
+        "topPickReason": "Surge capability up to 4800W easily powers sump pumps to prevent basement tornado shelter flooding.",
+        "budgetPickName": "Bluetti AC180 (1152Wh)",
+        "budgetPickClass": "Compact Storm Kit",
+        "budgetPickAsin": "B0C1SQZ5K3",
+        "budgetPickReason": "Rugged unibody casing protects the internal battery from accidental drops in dark storm conditions."
+    },
 
-    # 加利福尼亚州（野火防灾主动拉闸限电 PSPS）
+    # ================= 加利福尼亚州（野火防灾主动拉闸限电 PSPS 与地震） =================
     {
         "slug": "california-los-angeles",
         "cityName": "Los Angeles",
@@ -121,16 +197,211 @@ cities = [
         "budgetPickClass": "Solar Camping & Emergency",
         "budgetPickAsin": "B0D1GBG6Y5",
         "budgetPickReason": "Integrates effortlessly with 200W solar panels to recharge during bright California sunshine."
+    },
+    {
+        "slug": "california-san-diego",
+        "cityName": "San Diego",
+        "stateName": "California",
+        "stateCode": "CA",
+        "primaryThreat": "Backcountry Fire Weather & Coastal Grid Strain",
+        "riskType": "PSPS Shutoff",
+        "riskLevel": "Moderate-High",
+        "recommendedCapacity": "1000Wh - 1500Wh",
+        "localAnalysis": "San Diego County has high residential solar adoption, but grid-tied systems shut off during blackouts without an AC-coupled battery backup.",
+        "topPickName": "EcoFlow DELTA 2 Max (2048Wh)",
+        "topPickClass": "Off-Grid Islanding Station",
+        "topPickAsin": "B0C77J1S1N",
+        "topPickReason": "Can accept portable solar input to keep essentials running when rooftop grid-tied solar automatically shuts down.",
+        "budgetPickName": "EcoFlow RIVER 2 Pro (768Wh)",
+        "budgetPickClass": "Condo Emergency Pack",
+        "budgetPickAsin": "B0B9XQ5G7B",
+        "budgetPickReason": "Compact enough to slide under a bed, keeping laptops and medical nebulizers operational."
+    },
+    {
+        "slug": "california-sacramento",
+        "cityName": "Sacramento",
+        "stateName": "California",
+        "stateCode": "CA",
+        "primaryThreat": "Winter Atmospheric Rivers & Valley Windstorms",
+        "riskType": "Atmospheric River Flood",
+        "riskLevel": "Moderate-High",
+        "recommendedCapacity": "1500Wh - 2000Wh",
+        "localAnalysis": "Winter storms saturate Central Valley soils, toppling massive eucalyptus and pine trees onto electrical substations for days at a time.",
+        "topPickName": "Anker SOLIX F2000 (2048Wh)",
+        "topPickClass": "Heavy Backup Station",
+        "topPickAsin": "B0BX9T1K94",
+        "topPickReason": "Long-life LiFePO4 cells maintain charge over months of storage in winter utility closets.",
+        "budgetPickName": "Bluetti AC180 (1152Wh)",
+        "budgetPickClass": "Emergency Workhorse",
+        "budgetPickAsin": "B0C1SQZ5K3",
+        "budgetPickReason": "1440W high-speed wall recharge gets the unit to 100% in just one hour before incoming storm fronts."
+    },
+
+    # ================= 墨西哥湾沿岸及东南部其他高危州 =================
+    {
+        "slug": "louisiana-new-orleans",
+        "cityName": "New Orleans",
+        "stateName": "Louisiana",
+        "stateCode": "LA",
+        "primaryThreat": "Catastrophic Hurricane Direct Hits & Sump Pump Failures",
+        "riskType": "Major Hurricane",
+        "riskLevel": "Critical",
+        "recommendedCapacity": "2000Wh+ (Continuous Solar Required)",
+        "localAnalysis": "Below-sea-level elevation makes continuous power for drainage sump pumps and food refrigeration a matter of survival during multi-week Entergy grid blackouts.",
+        "topPickName": "EcoFlow DELTA 2 Max (2048Wh)",
+        "topPickClass": "Expandable Severe Storm Unit",
+        "topPickAsin": "B0C77J1S1N",
+        "topPickReason": "Dual-charging technology (Solar + AC/DC) allows rapid topping off whenever intermittent power or sunlight appears.",
+        "budgetPickName": "Jackery Explorer 1000 v2 (1070Wh)",
+        "budgetPickClass": "Critical Sump & CPAP Backup",
+        "budgetPickAsin": "B0D1GBG6Y5",
+        "budgetPickReason": "Runs 1/3 HP sump pumps intermittently to keep basements and ground floors dry."
+    },
+    {
+        "slug": "north-carolina-raleigh",
+        "cityName": "Raleigh",
+        "stateName": "North Carolina",
+        "stateCode": "NC",
+        "primaryThreat": "Inland Hurricane Remnants & Winter Ice Glaze",
+        "riskType": "Hurricane & Ice Storm",
+        "riskLevel": "Moderate-High",
+        "recommendedCapacity": "1000Wh - 2000Wh",
+        "localAnalysis": "Central North Carolina is vulnerable to both slow-moving Atlantic storm deluges and severe winter ice accumulation that paralyzes utility access roads.",
+        "topPickName": "Anker SOLIX F2000 (2048Wh)",
+        "topPickClass": "All-Weather Home Station",
+        "topPickAsin": "B0BX9T1K94",
+        "topPickReason": "Can power both heavy summer dehumidifiers and low-wattage winter electric blankets.",
+        "budgetPickName": "Bluetti AC180 (1152Wh)",
+        "budgetPickClass": "Value Inverter Unit",
+        "budgetPickAsin": "B0C1SQZ5K3",
+        "budgetPickReason": "Pure sine wave inverter ensures sensitive teleworking computers and routers do not reset."
+    },
+    {
+        "slug": "georgia-atlanta",
+        "cityName": "Atlanta",
+        "stateName": "Georgia",
+        "stateCode": "GA",
+        "primaryThreat": "Severe Winter Freezing Rain & Summer Microbursts",
+        "riskType": "Freezing Rain & High Winds",
+        "riskLevel": "Moderate",
+        "recommendedCapacity": "1000Wh - 1500Wh",
+        "localAnalysis": "Known for dense tree canopy, Atlanta frequently suffers localized grid outages when ice accumulation snaps branches across suburban power lines.",
+        "topPickName": "EcoFlow DELTA 2 Max (2048Wh)",
+        "topPickClass": "Suburban Family Backup",
+        "topPickAsin": "B0C77J1S1N",
+        "topPickReason": "Quiet 30dB operation makes it ideal for running medical devices inside master bedrooms all night.",
+        "budgetPickName": "Jackery Explorer 1000 v2 (1070Wh)",
+        "budgetPickClass": "Portable Emergency Kit",
+        "budgetPickAsin": "B0D1GBG6Y5",
+        "budgetPickReason": "Compact form factor easily fits into closets and provides immediate power with one button press."
+    },
+
+    # ================= 西南部干旱极端高温与东南部沿海 =================
+    {
+        "slug": "arizona-phoenix",
+        "cityName": "Phoenix",
+        "stateName": "Arizona",
+        "stateCode": "AZ",
+        "primaryThreat": "115°F+ Extreme Heat Waves & Dust Storm Blackouts",
+        "riskType": "Extreme Heat Grid Collapse",
+        "riskLevel": "High (Life-Threatening Heat)",
+        "recommendedCapacity": "2000Wh+ (Must Run Evaporative Coolers)",
+        "localAnalysis": "Monsoon dust storms (haboobs) knock out power lines during 115°F heat waves. Losing refrigeration or evaporative cooling poses an immediate health emergency.",
+        "topPickName": "Anker SOLIX F2000 (2048Wh)",
+        "topPickClass": "High-Temp Resilient Station",
+        "topPickAsin": "B0BX9T1K94",
+        "topPickReason": "Advanced thermal dissipation ensures charging remains safe even when ambient room temperatures exceed 105°F.",
+        "budgetPickName": "Bluetti AC180 (1152Wh)",
+        "budgetPickClass": "Emergency Misting Fan Backup",
+        "budgetPickAsin": "B0C1SQZ5K3",
+        "budgetPickReason": "Runs portable evaporative swamp coolers and desktop misting fans for over 15 hours continuously."
+    },
+    {
+        "slug": "nevada-las-vegas",
+        "cityName": "Las Vegas",
+        "stateName": "Nevada",
+        "stateCode": "NV",
+        "primaryThreat": "Summer Transformer Meltdowns & Flash Floods",
+        "riskType": "Heat Grid Strain",
+        "riskLevel": "Moderate",
+        "recommendedCapacity": "1000Wh - 2000Wh",
+        "localAnalysis": "Intense residential AC electrical load pushes neighborhood transformers to failure during record-breaking desert heatwaves.",
+        "topPickName": "EcoFlow DELTA 2 Max (2048Wh)",
+        "topPickClass": "Heavy Inverter Station",
+        "topPickAsin": "B0C77J1S1N",
+        "topPickReason": "Powers kitchen fridges and counter-top induction cookers without drawing on the strained utility grid.",
+        "budgetPickName": "EcoFlow RIVER 2 Pro (768Wh)",
+        "budgetPickClass": "Condo Heat Emergency Pack",
+        "budgetPickAsin": "B0B9XQ5G7B",
+        "budgetPickReason": "Extremely fast wall recharge lets high-rise condo owners charge up before scheduled rolling blackouts."
+    },
+    {
+        "slug": "south-carolina-charleston",
+        "cityName": "Charleston",
+        "stateName": "South Carolina",
+        "stateCode": "SC",
+        "primaryThreat": "Sunny Day King Tides & Hurricane Storm Surges",
+        "riskType": "Coastal Flooding & Storm Surge",
+        "riskLevel": "High",
+        "recommendedCapacity": "1500Wh+",
+        "localAnalysis": "Historic coastal neighborhoods regularly face flooded electrical vaults during tropical storms, delaying power restoration by multiple days.",
+        "topPickName": "Anker SOLIX F2000 (2048Wh)",
+        "topPickClass": "Heavy Water-Resistant Casing",
+        "topPickAsin": "B0BX9T1K94",
+        "topPickReason": "Elevated wheeled chassis prevents ground moisture from penetrating battery components.",
+        "budgetPickName": "Jackery Explorer 1000 v2 (1070Wh)",
+        "budgetPickClass": "Lightweight Evacuation Battery",
+        "budgetPickAsin": "B0D1GBG6Y5",
+        "budgetPickReason": "Compact enough to toss in an SUV trunk during mandatory coastal hurricane evacuation orders."
+    },
+
+    # ================= 中西部极寒与高海拔自驾露营 =================
+    {
+        "slug": "minnesota-minneapolis",
+        "cityName": "Minneapolis",
+        "stateName": "Minnesota",
+        "stateCode": "MN",
+        "primaryThreat": "-20°F Polar Vortex Freezes & Heavy Snow Loads",
+        "riskType": "Polar Vortex",
+        "riskLevel": "High",
+        "recommendedCapacity": "1500Wh+ (Cold-Rated Battery)",
+        "localAnalysis": "Sub-zero blizzard conditions freeze exterior power transformers. Running furnace blowers or indoor electric blankets is a matter of hypothermia prevention.",
+        "topPickName": "EcoFlow DELTA 2 Max (2048Wh)",
+        "topPickClass": "Heavy Winter Safe Battery",
+        "topPickAsin": "B0C77J1S1N",
+        "topPickReason": "Capable of providing steady power to gas-furnace circulating blowers through transfer switches.",
+        "budgetPickName": "Bluetti AC180 (1152Wh)",
+        "budgetPickClass": "Emergency Bedroom Warmth",
+        "budgetPickAsin": "B0C1SQZ5K3",
+        "budgetPickReason": "Powers two heated electric blankets on medium settings for over 10 hours continuously."
+    },
+    {
+        "slug": "colorado-denver",
+        "cityName": "Denver",
+        "stateName": "Colorado",
+        "stateCode": "CO",
+        "primaryThreat": "High-Altitude Spring Blizzards & Mountain Isolation",
+        "riskType": "Heavy Snow & Mountain Grid Failure",
+        "riskLevel": "Moderate",
+        "recommendedCapacity": "1000Wh - 2000Wh",
+        "localAnalysis": "Heavy wet spring snowstorms regularly snap mountain-foothill power lines, leaving residential communities isolated while highway crews clear passes.",
+        "topPickName": "Anker SOLIX F2000 (2048Wh)",
+        "topPickClass": "Cold-Weather Overlanding & Home Unit",
+        "topPickAsin": "B0BX9T1K94",
+        "topPickReason": "Industry-leading temperature sensors prevent battery damage when recharging in cold garages.",
+        "budgetPickName": "Jackery Explorer 1000 v2 (1070Wh)",
+        "budgetPickClass": "Cabin & Outdoor Essential",
+        "budgetPickAsin": "B0D1GBG6Y5",
+        "budgetPickReason": "Ideal companion for high-altitude dispersed camping in Rocky Mountain National Park."
     }
 ]
 
-# 确保输出目录存在
+# 确保输出目录存在并写入
 output_dir = os.path.join(os.path.dirname(__file__), "src", "data")
 os.makedirs(output_dir, exist_ok=True)
-
-# 写入 JSON 文件
 output_path = os.path.join(output_dir, "cities.json")
+
 with open(output_path, "w", encoding="utf-8") as f:
     json.dump(cities, f, indent=2, ensure_ascii=False)
 
-print(f"成功生成 {len(cities)} 个高风险城市数据至: {output_path}")
+print(f"[✓] 成功生成 {len(cities)} 个全美高风险城市数据至: {output_path}")
