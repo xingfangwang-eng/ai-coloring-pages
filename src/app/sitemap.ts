@@ -31,6 +31,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'monthly',
       priority: 0.3,
     },
+    {
+      url: `${baseUrl}/calculators/tax-credit`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 1.0, // 重点理财工具页最高权重
+    },
   ];
 
   // 2. 20 个高风险城市页面
