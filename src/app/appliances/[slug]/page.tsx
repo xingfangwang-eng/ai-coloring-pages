@@ -179,7 +179,7 @@ export default async function ApplianceGuidePage({ params }: AppliancePageProps)
               </div>
               <div className="mt-6 pt-4 border-t border-slate-100">
                 <a
-                  href={`https://www.amazon.com/dp/${item.topPickAsin}?tag=wangdadi-20`}
+                  href={`https://www.amazon.com/dp/${item.topPickAsin}?tag=powerreadyhub-20`}
                   target="_blank"
                   rel="noopener noreferrer nofollow"
                   className="block w-full text-center bg-amber-500 hover:bg-amber-600 text-slate-950 font-semibold py-2.5 rounded-lg text-sm transition"
@@ -198,7 +198,7 @@ export default async function ApplianceGuidePage({ params }: AppliancePageProps)
               </div>
               <div className="mt-6 pt-4 border-t border-slate-100">
                 <a
-                  href={`https://www.amazon.com/dp/${item.budgetPickAsin}?tag=wangdadi-20`}
+                  href={`https://www.amazon.com/dp/${item.budgetPickAsin}?tag=powerreadyhub-20`}
                   target="_blank"
                   rel="noopener noreferrer nofollow"
                   className="block w-full text-center bg-slate-800 hover:bg-slate-900 text-white font-medium py-2.5 rounded-lg text-sm transition"
