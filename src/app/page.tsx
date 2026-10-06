@@ -43,6 +43,7 @@ export default function HomePage() {
                   <th className="p-4">500Wh Station</th>
                   <th className="p-4">1000Wh Station</th>
                   <th className="p-4">2000Wh Station</th>
+                  <th className="p-4">Detailed Guide</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-600">
@@ -52,6 +53,7 @@ export default function HomePage() {
                   <td className="p-4 text-red-500 font-medium">Not Recommended</td>
                   <td className="p-4 text-amber-600 font-medium">4 – 6 Hours</td>
                   <td className="p-4 text-green-600 font-medium">10 – 14 Hours</td>
+                  <td className="p-4"><Link href="/appliances/run-refrigerator-on-solar-generator" className="text-amber-600 hover:underline">Sizing Guide →</Link></td>
                 </tr>
                 <tr>
                   <td className="p-4 font-medium text-slate-900">CPAP Medical Machine</td>
@@ -59,20 +61,62 @@ export default function HomePage() {
                   <td className="p-4 text-green-600">1 – 2 Nights</td>
                   <td className="p-4 text-green-600">3 – 4 Nights</td>
                   <td className="p-4 text-green-600">7+ Nights</td>
+                  <td className="p-4"><Link href="/appliances/run-cpap-on-solar-generator" className="text-amber-600 hover:underline">Sizing Guide →</Link></td>
                 </tr>
                 <tr>
-                  <td className="p-4 font-medium text-slate-900">Wi-Fi Router + Phones</td>
-                  <td className="p-4">15W – 30W</td>
-                  <td className="p-4 text-green-600">15 – 20 Hours</td>
-                  <td className="p-4 text-green-600">35 – 45 Hours</td>
-                  <td className="p-4 text-green-600">80+ Hours</td>
+                  <td className="p-4 font-medium text-slate-900">Basement Sump Pump</td>
+                  <td className="p-4">700W – 900W</td>
+                  <td className="p-4 text-red-500">Not Capable</td>
+                  <td className="p-4 text-amber-600">30–50 Cycles</td>
+                  <td className="p-4 text-green-600">90–120 Cycles</td>
+                  <td className="p-4"><Link href="/appliances/run-sump-pump-on-solar-generator" className="text-amber-600 hover:underline">Sizing Guide →</Link></td>
+                </tr>
+                <tr>
+                  <td className="p-4 font-medium text-slate-900">Portable Air Conditioner</td>
+                  <td className="p-4">900W – 1200W</td>
+                  <td className="p-4 text-red-500">Not Capable</td>
+                  <td className="p-4 text-red-500">45 Mins</td>
+                  <td className="p-4 text-amber-600">2 – 2.5 Hours</td>
+                  <td className="p-4"><Link href="/appliances/run-portable-ac-on-solar-generator" className="text-amber-600 hover:underline">Sizing Guide →</Link></td>
+                </tr>
+                <tr>
+                  <td className="p-4 font-medium text-slate-900">Electric Space Heater</td>
+                  <td className="p-4">750W – 1500W</td>
+                  <td className="p-4 text-red-500">Not Practical</td>
+                  <td className="p-4 text-amber-600">1 – 1.3 Hours</td>
+                  <td className="p-4 text-amber-600">2 – 2.8 Hours</td>
+                  <td className="p-4"><Link href="/appliances/run-electric-space-heater-on-solar-generator" className="text-amber-600 hover:underline">Sizing Guide →</Link></td>
+                </tr>
+                <tr>
+                  <td className="p-4 font-medium text-slate-900">Wi-Fi Router + Starlink</td>
+                  <td className="p-4">25W – 75W</td>
+                  <td className="p-4 text-green-600">8 – 15 Hours</td>
+                  <td className="p-4 text-green-600">18 – 35 Hours</td>
+                  <td className="p-4 text-green-600">40 – 70+ Hours</td>
+                  <td className="p-4"><Link href="/appliances/run-wifi-router-and-starlink-on-solar-generator" className="text-amber-600 hover:underline">Sizing Guide →</Link></td>
+                </tr>
+                <tr>
+                  <td className="p-4 font-medium text-slate-900">Microwave & Coffee Maker</td>
+                  <td className="p-4">900W – 1400W</td>
+                  <td className="p-4 text-red-500">Not Capable</td>
+                  <td className="p-4 text-amber-600">15–25 Cycles</td>
+                  <td className="p-4 text-green-600">40–60 Cycles</td>
+                  <td className="p-4"><Link href="/appliances/run-microwave-and-coffee-maker-on-solar-generator" className="text-amber-600 hover:underline">Sizing Guide →</Link></td>
+                </tr>
+                <tr>
+                  <td className="p-4 font-medium text-slate-900">Smart TV & Entertainment</td>
+                  <td className="p-4">80W – 160W</td>
+                  <td className="p-4 text-green-600">3 – 5 Hours</td>
+                  <td className="p-4 text-green-600">7 – 11 Hours</td>
+                  <td className="p-4 text-green-600">16 – 22 Hours</td>
+                  <td className="p-4"><Link href="/appliances/run-smart-tv-and-entertainment-on-solar-generator" className="text-amber-600 hover:underline">Sizing Guide →</Link></td>
                 </tr>
               </tbody>
             </table>
           </div>
         </div>
 
-        {/* 👉 核心转化入口：30% 联邦清洁能源退税横幅 (刺激老外算账与大额下单) 👈 */}
+        {/* 30% 联邦清洁能源退税横幅 */}
         <div className="mt-8 bg-gradient-to-r from-emerald-950 via-slate-900 to-slate-950 border border-emerald-500/30 rounded-2xl p-6 sm:p-8 text-white shadow-lg flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="space-y-2 text-center md:text-left">
             <span className="inline-block bg-emerald-500/20 text-emerald-400 text-xs font-semibold px-2.5 py-1 rounded border border-emerald-500/30 uppercase tracking-wider">
@@ -96,50 +140,64 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 模块 2：地域场景化导航 */}
+      {/* 模块 2：全美 20 大高风险城市全量内链网 (彻底消灭未识别死角) */}
       <section id="regional-guides" className="py-12 px-4 bg-slate-100 border-y border-slate-200 w-full">
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-6xl mx-auto">
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold text-slate-900">Regional Power Outage & Emergency Guides</h2>
-            <p className="text-slate-500 text-sm mt-1">Select your area to see recommended generator setups based on local grid risks.</p>
+            <p className="text-slate-500 text-sm mt-1">Select your metropolitan area to see local grid vulnerabilities and recommended generator sizing.</p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* 飓风带分类 */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+            
+            {/* 栏目 1：佛罗里达飓风走廊 */}
             <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-              <div className="text-blue-600 text-lg font-bold mb-2">🌀 Hurricane & Storm Zones</div>
-              <p className="text-xs text-slate-500 mb-3">High humidity, multi-day post-storm grid failures.</p>
-              <ul className="text-sm space-y-2 text-slate-700">
+              <div className="text-blue-600 text-base font-bold mb-2">🌀 Florida Hurricane Corridors</div>
+              <ul className="text-xs space-y-2 text-slate-700">
                 <li><Link href="/power/florida-miami" className="hover:text-amber-600 hover:underline">Miami, FL Emergency Backup</Link></li>
                 <li><Link href="/power/florida-tampa" className="hover:text-amber-600 hover:underline">Tampa, FL Outage Guide</Link></li>
-                <li><Link href="/power/texas-houston" className="hover:text-amber-600 hover:underline">Houston, TX Hurricane Prep</Link></li>
-                <li><Link href="/power/florida-orlando" className="hover:text-amber-600 hover:underline">Orlando, FL Outage Backup</Link></li>
+                <li><Link href="/power/florida-orlando" className="hover:text-amber-600 hover:underline">Orlando, FL Storm Backup</Link></li>
+                <li><Link href="/power/florida-jacksonville" className="hover:text-amber-600 hover:underline">Jacksonville, FL Grid Prep</Link></li>
               </ul>
             </div>
 
-            {/* 冬季极寒寒潮带 */}
+            {/* 栏目 2：德克萨斯独立电网 (ERCOT) */}
             <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-              <div className="text-sky-600 text-lg font-bold mb-2">❄️ Winter Freeze & Ice Storms</div>
-              <p className="text-xs text-slate-500 mb-3">Sub-zero temperatures and frozen utility lines.</p>
-              <ul className="text-sm space-y-2 text-slate-700">
+              <div className="text-sky-600 text-base font-bold mb-2">❄️ Texas Freezes & Extreme Heat</div>
+              <ul className="text-xs space-y-2 text-slate-700">
+                <li><Link href="/power/texas-houston" className="hover:text-amber-600 hover:underline">Houston, TX Hurricane Prep</Link></li>
                 <li><Link href="/power/texas-dallas" className="hover:text-amber-600 hover:underline">Dallas, TX Winter Storm Backup</Link></li>
                 <li><Link href="/power/texas-austin" className="hover:text-amber-600 hover:underline">Austin, TX Grid Reliability</Link></li>
-                <li><Link href="/power/minnesota-minneapolis" className="hover:text-amber-600 hover:underline">Minneapolis, MN Cold Weather Setup</Link></li>
                 <li><Link href="/power/texas-san-antonio" className="hover:text-amber-600 hover:underline">San Antonio, TX Heat & Freeze</Link></li>
+                <li><Link href="/power/texas-fort-worth" className="hover:text-amber-600 hover:underline">Fort Worth, TX Tornado Sizing</Link></li>
               </ul>
             </div>
 
-            {/* 山火拉闸限电与自驾露营 */}
+            {/* 栏目 3：加利福尼亚山火与大气河流 */}
             <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-              <div className="text-amber-600 text-lg font-bold mb-2">🔥 Wildfire PSPS & Off-Grid</div>
-              <p className="text-xs text-slate-500 mb-3">Planned safety shutoffs and high-altitude dispersed camping.</p>
-              <ul className="text-sm space-y-2 text-slate-700">
+              <div className="text-amber-600 text-base font-bold mb-2">🔥 California Wildfire & PSPS</div>
+              <ul className="text-xs space-y-2 text-slate-700">
                 <li><Link href="/power/california-los-angeles" className="hover:text-amber-600 hover:underline">Los Angeles, CA Fire Season Backup</Link></li>
-                <li><Link href="/power/colorado-denver" className="hover:text-amber-600 hover:underline">Denver, CO High Altitude Camping</Link></li>
-                <li><Link href="/power/california-sacramento" className="hover:text-amber-600 hover:underline">Sacramento, CA Atmospheric River</Link></li>
-                <li><Link href="/power/arizona-phoenix" className="hover:text-amber-600 hover:underline">Phoenix, AZ Extreme Heat Power</Link></li>
+                <li><Link href="/power/california-san-diego" className="hover:text-amber-600 hover:underline">San Diego, CA PSPS Shutoffs</Link></li>
+                <li><Link href="/power/california-sacramento" className="hover:text-amber-600 hover:underline">Sacramento, CA Valley Floods</Link></li>
               </ul>
             </div>
+
+            {/* 栏目 4：东南部、西南部与极地涡旋区域 */}
+            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+              <div className="text-indigo-600 text-base font-bold mb-2">🌪️ Gulf, Southwest & Polar Zones</div>
+              <ul className="text-xs space-y-2 text-slate-700">
+                <li><Link href="/power/louisiana-new-orleans" className="hover:text-amber-600 hover:underline">New Orleans, LA Direct Hits</Link></li>
+                <li><Link href="/power/north-carolina-raleigh" className="hover:text-amber-600 hover:underline">Raleigh, NC Ice & Storms</Link></li>
+                <li><Link href="/power/georgia-atlanta" className="hover:text-amber-600 hover:underline">Atlanta, GA Freezing Rain</Link></li>
+                <li><Link href="/power/arizona-phoenix" className="hover:text-amber-600 hover:underline">Phoenix, AZ 115°F Heatwave</Link></li>
+                <li><Link href="/power/nevada-las-vegas" className="hover:text-amber-600 hover:underline">Las Vegas, NV Grid Strain</Link></li>
+                <li><Link href="/power/south-carolina-charleston" className="hover:text-amber-600 hover:underline">Charleston, SC King Tides</Link></li>
+                <li><Link href="/power/minnesota-minneapolis" className="hover:text-amber-600 hover:underline">Minneapolis, MN -20°F Vortex</Link></li>
+                <li><Link href="/power/colorado-denver" className="hover:text-amber-600 hover:underline">Denver, CO High Altitude</Link></li>
+              </ul>
+            </div>
+
           </div>
         </div>
       </section>
