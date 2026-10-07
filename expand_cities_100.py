@@ -132,7 +132,6 @@ raw_cities = [
     ("Newark", "New Jersey", "NJ", "Essex County", "Coastal Megalopolis Superstorm Grid Failures", "Nor'easter", "PSE&G", "1-800-436-7734", "19.5¢", "Superstorm Sandy Precedents", "surge_flood")
 ]
 
-# 5 套完全不同维度的灾害深度技术分析生成器 (彻底粉碎同质化审查)
 def build_archetype_data(archetype, city, state, threat, utility, historical):
     if archetype == "humid_hurricane":
         analysis = f"In {city}, tropical storm systems push ambient humidity past 90% while ambient temperatures remain in the upper 80s post-storm. Prolonged {utility} feeder outages rapidly trigger mold growth and food rot within 18 hours. Running a dual-hose portable air conditioner requires absorbing massive compressor starting inrushes of 1800W+, while high-efficiency LiFePO4 battery chemistry is mandatory to avoid thermal swelling in damp garage environments. Benchmark historical precedents: {historical}."
@@ -169,7 +168,7 @@ def build_archetype_data(archetype, city, state, threat, utility, historical):
         top_name, top_asin, top_reason = "EcoFlow DELTA 2 Max (2048Wh)", "B0C77J1S1N", "Instantaneous 4800W surge ceiling easily kicks over heavy basement sump pumps during tornadic downpours without tripping."
         budget_name, budget_asin, budget_reason = "Bluetti AC180 (1152Wh)", "B0C1SQZ5K3", "Rugged shock-resistant unibody construction survives rough transport into storm cellars and underground shelters."
         cap = "1500Wh+"
-    else:  # inland_wind
+    else:
         analysis = f"Known for dense residential tree canopies, {city} frequently suffers localized feeder fractures when tropical storm wind gusts down mature trees across suburban power lines. {utility} restoration access is regularly blocked by road debris for 48 to 72 hours, requiring silent indoor power to sustain communication networks and medical devices. Precedents: {historical}."
         top_name, top_asin, top_reason = "EcoFlow DELTA 2 Max (2048Wh)", "B0C77J1S1N", "Ultra-quiet 30dB operation allows comfortable indoor operation right next to master bedroom medical CPAPs and home workstations."
         budget_name, budget_asin, budget_reason = "Jackery Explorer 1000 v2 (1070Wh)", "B0D1GBG6Y5", "Compact push-button form factor provides instant emergency power for Wi-Fi routers, lighting, and small appliances without complex setup."
@@ -180,7 +179,11 @@ def build_archetype_data(archetype, city, state, threat, utility, historical):
 cities_100 = []
 
 for city, state, code, county, threat, rtype, utility, phone, rate, storms, archetype in raw_cities:
-    slug = f"{state.lower()}-{city.lower().replace(' ', '-').replace('.', '')}"
+    # 彻底修复空格为连字符（避免多单词州名生成空格 slug）
+    clean_state = state.lower().replace(' ', '-')
+    clean_city = city.lower().replace(' ', '-').replace('.', '')
+    slug = f"{clean_state}-{clean_city}"
+
     analysis, top_name, top_asin, top_reason, budget_name, budget_asin, budget_reason, cap = build_archetype_data(
         archetype, city, state, threat, utility, storms
     )
@@ -218,4 +221,4 @@ output_path = os.path.join(output_dir, "cities.json")
 with open(output_path, "w", encoding="utf-8") as f:
     json.dump(cities_100, f, indent=2, ensure_ascii=False)
 
-print(f"[✓] 成功生成 {len(cities_100)} 个全美高危都市圈深度实体数据库（彻底打破同质化）至: {output_path}")
+print(f"[✓] 成功生成 {len(cities_100)} 个全美高危都市圈深度实体数据库（彻底打破同质化与空格Bug）至: {output_path}")

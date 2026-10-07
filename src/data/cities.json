@@ -1608,7 +1608,7 @@
     "budgetPickReason": "1800W continuous inverter handles heavy starting surges on submersible sump pumps to keep crawlspaces and basements dry."
   },
   {
-    "slug": "north carolina-raleigh",
+    "slug": "north-carolina-raleigh",
     "cityName": "Raleigh",
     "stateName": "North Carolina",
     "stateCode": "NC",
@@ -1632,7 +1632,7 @@
     "budgetPickReason": "Powers multiple 12V and 120V heated mattress pads all night, keeping family bedrooms warm through sub-zero rolling blackouts."
   },
   {
-    "slug": "north carolina-charlotte",
+    "slug": "north-carolina-charlotte",
     "cityName": "Charlotte",
     "stateName": "North Carolina",
     "stateCode": "NC",
@@ -1656,7 +1656,7 @@
     "budgetPickReason": "Compact push-button form factor provides instant emergency power for Wi-Fi routers, lighting, and small appliances without complex setup."
   },
   {
-    "slug": "north carolina-wilmington",
+    "slug": "north-carolina-wilmington",
     "cityName": "Wilmington",
     "stateName": "North Carolina",
     "stateCode": "NC",
@@ -1680,7 +1680,7 @@
     "budgetPickReason": "1800W continuous inverter handles heavy starting surges on submersible sump pumps to keep crawlspaces and basements dry."
   },
   {
-    "slug": "north carolina-asheville",
+    "slug": "north-carolina-asheville",
     "cityName": "Asheville",
     "stateName": "North Carolina",
     "stateCode": "NC",
@@ -1704,7 +1704,7 @@
     "budgetPickReason": "1800W continuous inverter handles heavy starting surges on submersible sump pumps to keep crawlspaces and basements dry."
   },
   {
-    "slug": "north carolina-greensboro",
+    "slug": "north-carolina-greensboro",
     "cityName": "Greensboro",
     "stateName": "North Carolina",
     "stateCode": "NC",
@@ -1728,7 +1728,7 @@
     "budgetPickReason": "Powers multiple 12V and 120V heated mattress pads all night, keeping family bedrooms warm through sub-zero rolling blackouts."
   },
   {
-    "slug": "south carolina-charleston",
+    "slug": "south-carolina-charleston",
     "cityName": "Charleston",
     "stateName": "South Carolina",
     "stateCode": "SC",
@@ -1752,7 +1752,7 @@
     "budgetPickReason": "1800W continuous inverter handles heavy starting surges on submersible sump pumps to keep crawlspaces and basements dry."
   },
   {
-    "slug": "south carolina-columbia",
+    "slug": "south-carolina-columbia",
     "cityName": "Columbia",
     "stateName": "South Carolina",
     "stateCode": "SC",
@@ -1776,7 +1776,7 @@
     "budgetPickReason": "Compact push-button form factor provides instant emergency power for Wi-Fi routers, lighting, and small appliances without complex setup."
   },
   {
-    "slug": "south carolina-myrtle-beach",
+    "slug": "south-carolina-myrtle-beach",
     "cityName": "Myrtle Beach",
     "stateName": "South Carolina",
     "stateCode": "SC",
@@ -2448,7 +2448,7 @@
     "budgetPickReason": "Powers multiple 12V and 120V heated mattress pads all night, keeping family bedrooms warm through sub-zero rolling blackouts."
   },
   {
-    "slug": "new york-buffalo",
+    "slug": "new-york-buffalo",
     "cityName": "Buffalo",
     "stateName": "New York",
     "stateCode": "NY",
@@ -2472,7 +2472,7 @@
     "budgetPickReason": "Powers multiple 12V and 120V heated mattress pads all night, keeping family bedrooms warm through sub-zero rolling blackouts."
   },
   {
-    "slug": "new york-rochester",
+    "slug": "new-york-rochester",
     "cityName": "Rochester",
     "stateName": "New York",
     "stateCode": "NY",
@@ -2544,7 +2544,7 @@
     "budgetPickReason": "Powers multiple 12V and 120V heated mattress pads all night, keeping family bedrooms warm through sub-zero rolling blackouts."
   },
   {
-    "slug": "rhode island-providence",
+    "slug": "rhode-island-providence",
     "cityName": "Providence",
     "stateName": "Rhode Island",
     "stateCode": "RI",
@@ -2664,7 +2664,7 @@
     "budgetPickReason": "Powers multiple 12V and 120V heated mattress pads all night, keeping family bedrooms warm through sub-zero rolling blackouts."
   },
   {
-    "slug": "new jersey-newark",
+    "slug": "new-jersey-newark",
     "cityName": "Newark",
     "stateName": "New Jersey",
     "stateCode": "NJ",
