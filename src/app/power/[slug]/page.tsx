@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-// 导入城市数据
 import citiesData from '@/data/cities.json';
 
 interface CityPageProps {
@@ -9,7 +8,6 @@ interface CityPageProps {
   }>;
 }
 
-// 动态生成每个城市页面的独立 SEO Title 和 Description
 export async function generateMetadata({ params }: CityPageProps) {
   const { slug } = await params;
   const city = citiesData.find((item) => item.slug === slug);
@@ -22,15 +20,13 @@ export async function generateMetadata({ params }: CityPageProps) {
 
   return {
     title: `Best Solar Generators for ${city.cityName}, ${city.stateCode} (${city.riskType} Outages 2026)`,
-    description: `Compare portable battery backups and solar generator runtimes tailored for ${city.cityName}, ${city.stateName} to handle ${city.primaryThreat}.`,
-    // 补齐官方规范网址声明
+    description: `Compare portable battery backups and solar generator runtimes tailored for ${city.cityName}, ${city.stateName} to handle ${city.primaryThreat}. Local utility: ${city.localUtility}.`,
     alternates: {
       canonical: `https://www.wangdadi.xyz/power/${city.slug}`,
     },
   };
 }
 
-// 静态导出所有城市的路由，让 Cloudflare/Vercel 在构建时直接生成全静态 HTML
 export async function generateStaticParams() {
   return citiesData.map((city) => ({
     slug: city.slug,
@@ -45,7 +41,6 @@ export default async function CityGuidePage({ params }: CityPageProps) {
     notFound();
   }
 
-  // 1. Google 官方标准面包屑结构化数据 (BreadcrumbList Schema)
   const breadcrumbSchema = {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
@@ -73,7 +68,6 @@ export default async function CityGuidePage({ params }: CityPageProps) {
 
   return (
     <div className="bg-slate-50 text-slate-800 min-h-screen py-10 px-4">
-      {/* 注入 Google 爬虫专用的 JSON-LD 结构化数据标签 */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
@@ -81,7 +75,7 @@ export default async function CityGuidePage({ params }: CityPageProps) {
 
       <div className="max-w-4xl mx-auto space-y-8">
         
-        {/* 面包屑导航（真实用户可视） */}
+        {/* 面包屑导航 */}
         <nav aria-label="Breadcrumb" className="text-xs text-slate-500 flex items-center gap-2">
           <Link href="/" className="hover:underline hover:text-amber-600 transition">Home</Link>
           <span>/</span>
@@ -121,6 +115,37 @@ export default async function CityGuidePage({ params }: CityPageProps) {
           </div>
         </div>
 
+        {/* 👉 动作二核心增重：当地供电局与历史灾害权威看板 (彻底打破模板同质化) 👈 */}
+        <section className="bg-slate-900 text-white rounded-xl p-6 shadow-md space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-3 gap-2">
+            <div>
+              <span className="text-xs text-amber-400 font-semibold uppercase tracking-wider block">Local Grid Infrastructure</span>
+              <h2 className="text-lg font-bold text-white mt-0.5">{city.cityName} Utility & Hazard Profile</h2>
+            </div>
+            <span className="text-xs bg-slate-800 text-slate-300 px-3 py-1 rounded-full border border-slate-700 w-fit">
+              Avg. Retail Rate: {city.avgKwhRate}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+            <div className="bg-slate-800/80 p-3.5 rounded-lg border border-slate-700/60 space-y-1">
+              <span className="text-slate-400 block font-medium">Primary Electric Utility Provider</span>
+              <span className="text-white font-bold text-sm block">{city.localUtility}</span>
+              <span className="text-slate-400 block text-[11px] pt-1">
+                Emergency Outage Hotline: <strong className="text-amber-400">{city.utilityPhone}</strong>
+              </span>
+            </div>
+
+            <div className="bg-slate-800/80 p-3.5 rounded-lg border border-slate-700/60 space-y-1">
+              <span className="text-slate-400 block font-medium">Historical Extreme Weather Precedents</span>
+              <span className="text-white font-bold text-sm block">{city.historicalStorms}</span>
+              <span className="text-slate-400 block text-[11px] pt-1">
+                Data benchmarked against NOAA & EIA statutory outage filings.
+              </span>
+            </div>
+          </div>
+        </section>
+
         {/* 模块 2：针对该城市的具体痛点分析 */}
         <section className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
           <h2 className="text-xl font-bold text-slate-900">
@@ -131,7 +156,7 @@ export default async function CityGuidePage({ params }: CityPageProps) {
           </p>
         </section>
 
-        {/* 模块 3：推荐的亚马逊选品（带专属转化 Tag） */}
+        {/* 模块 3：推荐的亚马逊选品（带专属转化 Tag: powerreadyhub-20） */}
         <section className="space-y-6">
           <h2 className="text-xl font-bold text-slate-900">
             Recommended Backup Setups for {city.cityName} Residents
@@ -180,7 +205,7 @@ export default async function CityGuidePage({ params }: CityPageProps) {
           </div>
         </section>
 
-        {/* 金字塔内链闭环：所有子页面权重全量反哺首页主词 */}
+        {/* 金字塔内链闭环 */}
         <div className="pt-8 border-t border-slate-200 text-center space-y-2">
           <p className="text-xs text-slate-500">
             Comparing broader backup systems for your household?
