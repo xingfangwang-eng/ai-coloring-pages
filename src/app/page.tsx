@@ -138,6 +138,53 @@ export default function HomePage() {
             </Link>
           </div>
         </div>
+        {/* 模块 1.5：重型黄金词深度指南专区 (直接打通首页与三大高客单指南的内链通道) */}
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white border border-slate-200 rounded-xl p-5 flex flex-col justify-between shadow-sm">
+            <div>
+              <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-semibold">Whole-House Power</span>
+              <h4 className="font-bold text-base text-slate-900 mt-2">Best Solar Generators for Whole House Backup</h4>
+              <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                Comprehensive 2026 engineering guide on running kitchen fridges, well pumps, and 120V/240V household loads.
+              </p>
+            </div>
+            <div className="mt-4 pt-3 border-t border-slate-100">
+              <Link href="/guides/best-solar-generator-for-whole-house" className="text-xs font-bold text-amber-600 hover:text-amber-700 hover:underline">
+                Read Sizing Guide →
+              </Link>
+            </div>
+          </div>
+
+          <div className="bg-white border border-slate-200 rounded-xl p-5 flex flex-col justify-between shadow-sm">
+            <div>
+              <span className="text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-semibold">Flagship Teardown</span>
+              <h4 className="font-bold text-base text-slate-900 mt-2">EcoFlow DELTA Pro In-Depth Review</h4>
+              <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                Real-world runtime benchmarks and calculating your true cost after the 30% federal clean energy tax credit.
+              </p>
+            </div>
+            <div className="mt-4 pt-3 border-t border-slate-100">
+              <Link href="/guides/ecoflow-delta-pro-whole-house-generator-review" className="text-xs font-bold text-amber-600 hover:text-amber-700 hover:underline">
+                Read Review & Benchmarks →
+              </Link>
+            </div>
+          </div>
+
+          <div className="bg-white border border-slate-200 rounded-xl p-5 flex flex-col justify-between shadow-sm">
+            <div>
+              <span className="text-xs bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-medium">Off-Grid Homestead</span>
+              <h4 className="font-bold text-base text-slate-900 mt-2">Best Generators for Off-Grid Living</h4>
+              <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                Evaluating solar input limits, LiFePO4 thermal durability, and multi-day cabin setups.
+              </p>
+            </div>
+            <div className="mt-4 pt-3 border-t border-slate-100">
+              <Link href="/guides/best-generator-for-off-grid-living" className="text-xs font-bold text-amber-600 hover:text-amber-700 hover:underline">
+                Read Off-Grid Guide →
+              </Link>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* 模块 2：全美 20 大高风险城市全量内链网 (彻底消灭未识别死角) */}
