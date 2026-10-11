@@ -35,7 +35,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         {/* Google Analytics 统计代码 */}
         <Script
-          src="https://www.googletagmanager.com/gtag/js?id=G-L2YZZBNMCR"
+          src="https://www.googletagmanager.com/gtag/js?id=G-Z95W8LFJLW"
           strategy="afterInteractive"
         />
         <Script id="google-analytics" strategy="afterInteractive">
@@ -43,7 +43,7 @@ export default function RootLayout({
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
-            gtag('config', 'G-L2YZZBNMCR');
+            gtag('config', 'G-Z95W8LFJLW');
           `}
         </Script>
 
