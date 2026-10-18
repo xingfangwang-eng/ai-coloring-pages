@@ -1,0 +1,74 @@
+[
+  {
+    "slug": "best-solar-generator-for-whole-house",
+    "title": "The Best Solar Generator for Whole House Backup Power (2026 Emergency Guide)",
+    "targetKeywords": "the best solar generator for house, best solar generators for home use, best backup solar generator for home",
+    "readingTime": "6 min read",
+    "recommendedCapacity": "3000Wh – 6000Wh+ (Expandable LFP)",
+    "summary": "When the central grid fails, running essential household circuits—including full-size refrigeration, deep well pumps, and internet communications—demands minimum 3000W continuous output and high surge tolerance.",
+    "topPickTitle": "EcoFlow DELTA Pro (3.6kWh - 25kWh Expandable)",
+    "topPickAsin": "B09FL57F4F",
+    "topPickPrice": "$2,799",
+    "topPickPros": [
+      "Uncapped 30% IRS Section 25D Tax Credit Eligible",
+      "Expandable up to 25kWh with Smart Extra Batteries",
+      "True 240V split-phase capability to run central appliances"
+    ],
+    "altPickTitle": "Anker SOLIX F3800 (3.84kWh Direct Subpanel)",
+    "altPickAsin": "B0CQXF288Z",
+    "altPickPrice": "$3,499",
+    "altPickPros": [
+      "Direct 50A RV and EV charging ports built-in",
+      "Massive 6000W continuous dual-voltage output",
+      "10-year full-unit warranty guarantee"
+    ]
+  },
+  {
+    "slug": "ecoflow-delta-pro-whole-house-generator-review",
+    "title": "EcoFlow DELTA Pro Review: Is It Truly a Whole House Generator Alternative?",
+    "targetKeywords": "solar generator ecoflow delta pro, ecoflow tech delta pro power station, ecoflow delta pro whole house generator",
+    "readingTime": "5 min read",
+    "recommendedCapacity": "3600Wh Base Unit",
+    "summary": "A comprehensive engineering teardown of the EcoFlow DELTA Pro. We analyze whether its 3600W inverter can withstand simultaneous household surges and calculate its net cost after the 30% federal clean energy credit.",
+    "topPickTitle": "EcoFlow DELTA Pro Home Emergency Bundle",
+    "topPickAsin": "B09FL57F4F",
+    "topPickPrice": "$2,799 (Net $1,959 After 30% Tax Credit)",
+    "topPickPros": [
+      "Saves ~$840 on IRS Form 5695 federal tax return",
+      "LFP battery chemistry rated for 6,500+ cycles to 50%",
+      "Whisper-quiet indoor safe operation with zero fumes"
+    ],
+    "altPickTitle": "Jackery Explorer 1000 v2 (Budget Companion Unit)",
+    "altPickAsin": "B0D1GBG6Y5",
+    "altPickPrice": "$799",
+    "altPickPros": [
+      "Ideal companion unit for isolated bedroom CPAP runs",
+      "1-hour wall recharge emergency speed",
+      "Ultra-portable 24 lb chassis"
+    ]
+  },
+  {
+    "slug": "best-generator-for-off-grid-living",
+    "title": "Best Generator for Off Grid Living: Solar, Battery & Hybrid Setups (2026)",
+    "targetKeywords": "best generator for off grid, best generator for off grid living, best heavy duty solar generator",
+    "readingTime": "7 min read",
+    "recommendedCapacity": "2000Wh – 5000Wh (High Solar Input)",
+    "summary": "Full-time off-grid homesteading and remote cabin living require rugged battery hardware with fast MPPT solar recharging capabilities and high thermal tolerance.",
+    "topPickTitle": "Anker SOLIX F2000 (2048Wh Heavy Duty)",
+    "topPickAsin": "B0BX9T1K94",
+    "topPickPrice": "$1,499",
+    "topPickPros": [
+      "InfiniPower industrial unibody design resists dust and drops",
+      "High-temp cooling fans prevent thermal shutdown in cabins",
+      "1000W solar input recharges in 2.5 hours of full sun"
+    ],
+    "altPickTitle": "Bluetti AC180 (1152Wh Value Workhorse)",
+    "altPickAsin": "B0C1SQZ5K3",
+    "altPickPrice": "$699",
+    "altPickPros": [
+      "1800W pure sine wave inverter in a compact frame",
+      "Super-fast 45-minute AC wall top-off speed",
+      "Affordable entry point for off-grid weekenders"
+    ]
+  }
+]

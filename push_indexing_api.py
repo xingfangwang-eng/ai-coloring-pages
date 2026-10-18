@@ -29,12 +29,12 @@ urls_to_push = [
     f"{base_url}/privacy",
     f"{base_url}/terms"
 ]
-
-for app in appliances:
-    urls_to_push.append(f"{base_url}/appliances/{app['slug']}")
-
-for city in cities:
-    urls_to_push.append(f"{base_url}/power/{city['slug']}")
+# 今天只精准强推 3 篇全新上线的重型黄金词指南
+urls_to_push = [
+    "https://www.wangdadi.xyz/guides/best-solar-generator-for-whole-house",
+    "https://www.wangdadi.xyz/guides/ecoflow-delta-pro-whole-house-generator-review",
+    "https://www.wangdadi.xyz/guides/best-generator-for-off-grid-living"
+]
 
 SCOPES = ["https://www.googleapis.com/auth/indexing"]
 credentials = service_account.Credentials.from_service_account_file(key_file, scopes=SCOPES)
