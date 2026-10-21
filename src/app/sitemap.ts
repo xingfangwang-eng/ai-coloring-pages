@@ -1,68 +1,55 @@
 import type { MetadataRoute } from 'next';
-import citiesData from '@/data/cities.json';
-import appliancesData from '@/data/appliances.json';
-import guidesData from '@/data/guides.json';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = 'https://www.wangdadi.xyz';
 
-  // 1. 核心静态页面与理财工具
-  const staticPages: MetadataRoute.Sitemap = [
+  // 严格控制在 7 个最高权重、信息密度顶级的精锐页面，打破收录率死锁
+  return [
+    // 1. 核心首页
     {
       url: `${baseUrl}`,
       lastModified: new Date(),
-      changeFrequency: 'weekly',
+      changeFrequency: 'daily',
       priority: 1.0,
     },
+    // 2. 独立 30% 联邦退税计算器
     {
       url: `${baseUrl}/calculators/tax-credit`,
       lastModified: new Date(),
       changeFrequency: 'weekly',
       priority: 1.0,
     },
+    // 3. 3 篇覆盖高出价黄金词的重型指南
     {
-      url: `${baseUrl}/about`,
+      url: `${baseUrl}/guides/best-solar-generator-for-whole-house`,
       lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.5,
+      changeFrequency: 'weekly',
+      priority: 0.95,
     },
     {
-      url: `${baseUrl}/privacy`,
+      url: `${baseUrl}/guides/ecoflow-delta-pro-whole-house-generator-review`,
       lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.3,
+      changeFrequency: 'weekly',
+      priority: 0.95,
     },
     {
-      url: `${baseUrl}/terms`,
+      url: `${baseUrl}/guides/best-generator-for-off-grid-living`,
       lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.3,
+      changeFrequency: 'weekly',
+      priority: 0.95,
+    },
+    // 4. 仅保留 2 个已抓取且数据最完整的旗舰城市做单点突破
+    {
+      url: `${baseUrl}/power/florida-miami`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/power/texas-houston`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 0.9,
     },
   ];
-
-  // 2. 3 篇覆盖 ¥167 高客单黄金词的重型指南
-  const guidePages: MetadataRoute.Sitemap = guidesData.map((g) => ({
-    url: `${baseUrl}/guides/${g.slug}`,
-    lastModified: new Date(),
-    changeFrequency: 'weekly',
-    priority: 0.95,
-  }));
-
-  // 3. 20 个高断电风险城市页面
-  const cityPages: MetadataRoute.Sitemap = citiesData.map((city) => ({
-    url: `${baseUrl}/power/${city.slug}`,
-    lastModified: new Date(),
-    changeFrequency: 'weekly',
-    priority: 0.8,
-  }));
-
-  // 4. 8 大家电带载专属页面
-  const appliancePages: MetadataRoute.Sitemap = appliancesData.map((item) => ({
-    url: `${baseUrl}/appliances/${item.slug}`,
-    lastModified: new Date(),
-    changeFrequency: 'weekly',
-    priority: 0.9,
-  }));
-
-  return [...staticPages, ...guidePages, ...cityPages, ...appliancePages];
 }
